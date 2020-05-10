@@ -15,20 +15,23 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_ST/'];
-Settings.OutFile = 'IAGOS_maps.mat';
+Settings.OutFile = 'IAGOS_maps_200hPa.mat';
 
 %gridding
-Settings.Lon = -130:1.5:30;
-Settings.Lat = 10:1.5:90;
+Settings.Lon = -180:2:180;
+Settings.Lat =-90:2:90;
+
+%restrict pressure range
+Settings.PrsRange = [200,250]; %hPa
 
 %variables
-Settings.Vars = {'A','k','T'};
+Settings.Vars = {'A','k','Prs','Z','U','V','T'};
 
 %outlier cutoff
-Settings.CutOff = [.5,99.5];
+Settings.CutOff = [5,95];
 
 %years to use
-Settings.Years = 1996:1:1997;
+Settings.Years = 1994:1:2020;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -78,14 +81,20 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     ThisDayData = load(ThisDayFile{1});
     clear ThisDayFile
     
+    %discard any data outside our pressure range
+    InPrsRange = find(ThisDayData.Results.Prs./100 >= min(Settings.PrsRange) ...
+                    | ThisDayData.Results.Prs./100 <= max(Settings.PrsRange));
+           
+        
     %store what we need
     for iVar=1:1:numel(Vars);
       V = ThisDayData.Results.(Vars{iVar});
-      Data.(Vars{iVar}) = cat(1,Data.(Vars{iVar}),V(:));
+      Data.(Vars{iVar}) = cat(1,Data.(Vars{iVar}),flatten(V(InPrsRange)));
     end
 
+
     %and done!
-    clear ThisDayData iVar V
+    clear ThisDayData iVar V InPrsRange
     
   end
   textprogressbar('!')
@@ -98,17 +107,29 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   
   textprogressbar('Binning...')
   for iVar=1:1:numel(Settings.Vars);
-    %get da
+    %get data
     V = Data.(Settings.Vars{iVar});
+    
+    %remove outliers
+    Bad = prctile(V,Settings.CutOff);
+    V(V < min(Bad)) = NaN;
+    V(V > max(Bad)) = NaN;
+    
+    %grid
     [xi,yi] = meshgrid(Settings.Lon,Settings.Lat);
     zz = bin2matN(2,Data.Lon,Data.Lat,V,xi,yi,'@nanmean');
 
+    %store
     R = Results.(Settings.Vars{iVar});
     R(iMonth,:,:) = zz';
     Results.(Settings.Vars{iVar}) = R;
-    clear V xi yi zz R
+    
+    clear V xi yi zz R Bad
   end; clear iVar  
   textprogressbar(' done')
+  
+  %save
+  save(Settings.OutFile,'Results','Settings')
   
 end; clear iMonth
 

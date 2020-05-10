@@ -15,20 +15,20 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_ST/'];
-Settings.OutFile = 'IAGOS_maps.mat';
+Settings.OutFile = 'IAGOS_maps_5deg.mat';
 
 %gridding
-Settings.Lon = -130:1.5:30;
-Settings.Lat = 10:1.5:90;
+Settings.Lon = -180:5:180;
+Settings.Lat =-90:5:90;
 
 %variables
-Settings.Vars = {'A','k','T'};
+Settings.Vars = {'A','k','Prs','Z','U','V','T'};
 
 %outlier cutoff
 Settings.CutOff = [5,95];
 
 %years to use
-Settings.Years = 1996:1:1997;
+Settings.Years = 1994:1:2020;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -118,6 +118,9 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     clear V xi yi zz R Bad
   end; clear iVar  
   textprogressbar(' done')
+  
+  %save
+  save(Settings.OutFile,'Results','Settings')
   
 end; clear iMonth
 

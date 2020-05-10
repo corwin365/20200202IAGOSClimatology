@@ -32,8 +32,8 @@ Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %geolocation
-Settings.Vars.Geo.In = {'lat','lon','Time'};
-Settings.Vars.Geo.Out  = {'Lat','Lon','Time'};
+Settings.Vars.Geo.In  = {'lat','lon','Time'};
+Settings.Vars.Geo.Out = {'Lat','Lon','Time'};
 
 %s-transform
 Settings.Vars.ST.In  = {'A','F1'};
