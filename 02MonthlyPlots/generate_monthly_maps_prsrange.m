@@ -15,7 +15,7 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_ST/'];
-Settings.OutFile = 'IAGOS_maps_200hPa.mat';
+Settings.OutFile = 'IAGOS_maps_200hPa_median.mat';
 
 %gridding
 Settings.Lon = -180:2:180;
@@ -27,8 +27,8 @@ Settings.PrsRange = [200,250]; %hPa
 %variables
 Settings.Vars = {'A','k','Prs','Z','U','V','T'};
 
-%outlier cutoff
-Settings.CutOff = [5,95];
+% % %outlier cutoff
+% % Settings.CutOff = [5,95];
 
 %years to use
 Settings.Years = 1994:1:2020;
@@ -43,6 +43,8 @@ for iVar=1:1:numel(Settings.Vars)
   Results.(Settings.Vars{iVar}) = X;
 end;
 clear iVar X
+
+Results.N = Results.(Settings.Vars{1}); %count of points
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% do it!
@@ -110,14 +112,15 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     %get data
     V = Data.(Settings.Vars{iVar});
     
-    %remove outliers
-    Bad = prctile(V,Settings.CutOff);
-    V(V < min(Bad)) = NaN;
-    V(V > max(Bad)) = NaN;
+% %     %remove outliers
+% %     Bad = prctile(V,Settings.CutOff);
+% %     V(V < min(Bad)) = NaN;
+% %     V(V > max(Bad)) = NaN;
     
     %grid
     [xi,yi] = meshgrid(Settings.Lon,Settings.Lat);
-    zz = bin2matN(2,Data.Lon,Data.Lat,V,xi,yi,'@nanmean');
+%     zz = bin2matN(2,Data.Lon,Data.Lat,V,xi,yi,'@nanmean');
+    zz = bin2matN(2,Data.Lon,Data.Lat,V,xi,yi,'@nanmedian');
 
     %store
     R = Results.(Settings.Vars{iVar});
@@ -126,6 +129,15 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     
     clear V xi yi zz R Bad
   end; clear iVar  
+  
+  %also do number of points measured
+  [xi,yi] = meshgrid(Settings.Lon,Settings.Lat);
+  zz = bin2matN(2,Data.Lon,Data.Lat,ones(size(Data.Lat)),xi,yi,'@nansum');
+  R = Results.N;
+  R(iMonth,:,:) = zz';
+  Results.N = R;
+  clear xi yi zz R 
+  
   textprogressbar(' done')
   
   %save

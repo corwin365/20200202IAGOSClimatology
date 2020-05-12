@@ -1,5 +1,8 @@
 clearvars
 
+
+disp('Does not yet apply alpha')
+stop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %plot monthly maps of IAGOS postprocessed data, composited over all years
@@ -13,22 +16,21 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'clustertest_mean.mat';%'IAGOS_maps_200hPa_median.mat';
+Settings.DataFile = 'clustertest.mat';%'IAGOS_maps_200hPa_median.mat';
 
 %variable to plot
 Settings.Var = 'A';
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*9;
+Settings.SmoothSize =[1,1].*1;
 
 %colours
 Settings.NColours = 16;
 
 %gap filling. maximum number of bins permitted for a fill
 %this happens *before* smoothing
-%not used as clustering plugs the same bags, but vestigial code kept
-Settings.MaxGapSize.Lon = 0;
-Settings.MaxGapSize.Lat = 0;
+Settings.MaxGapSize.Lon = 5;
+Settings.MaxGapSize.Lat = 5;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load and prep data
@@ -39,8 +41,9 @@ Data = load(Settings.DataFile);
 
 %compute the measurements per km^2 for each cluster
 %then assign that to each gridbox
-[~,yi] = meshgrid(Data.Settings.Lon,Data.Settings.Lat);
+[xi,yi] = meshgrid(Data.Settings.Lon,Data.Settings.Lat);
 A = 112 .* 112. *cosd(yi);  %km^2 per gridbox
+
 
 Mpkm = NaN.*Data.Results.N;
 for iMonth=1:1:12;
@@ -65,20 +68,14 @@ for iMonth=1:1:12;
     Ntm = mean(N(ThisCid)); %they're all the same number, so mean is fine
     
     %hence, measurements per unit area
-    ThisMonth(ThisCid) = Area./Ntm;
+    ThisMonth(ThisCid) = Ntm./Area;
   end
-
   %and store
   Mpkm(iMonth,:,:) = ThisMonth;
 end
-clear yi A iMonth Cid N ThisMonth ThisCid Cluster Area Ntm
+clear xi yi A iMonth Cid N ThisMonth ThisCid Cluster Area Ntm
 
-%create wind ('W') as quadd(U,V);
-Data.Results.W = quadadd(Data.Results.U,Data.Results.V);
 
-%and latitude derivative of wind
-Data.Results.dW = diff(Data.Results.W,1,3); Data.Results.dW(end,end,end+1) = NaN;
-Data.Results.absdW = abs(Data.Results.dW);
 
 %find desired var
 Data.Results = Data.Results.(Settings.Var);
@@ -92,12 +89,10 @@ end
 
 
 %colour range
-switch Settings.Var   
-  case {'U','V'};               CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
-  case {'dW'};                  CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
-  case {'T','Prs','A','W'};     CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
-  case {'k'};                   CRange = [200,600];
-  otherwise;                    CRange = [0,prctile(Data.Results(:),97.5)];
+switch Settings.Var
+  case {'U','V'};           CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
+  case {'T','Prs','k','A'}; CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
+  otherwise;                CRange = [0,prctile(Data.Results(:),97.5)];
 end  
 
 %load topography
@@ -133,6 +128,17 @@ for iMonth=1:1:12
 
   %get data
   ToPlot = squeeze(Data.Results(iMonth,:,:))';
+  
+  %get alpha, generated from the measurements per km^2
+  Alpha = squeeze(Mpkm(iMonth,:,:))';
+  
+  %more than 0.05 measurements per km^2 is opaque, then scales down to zero
+  %below that value
+  Alpha = Alpha ./ 0.05;
+  Alpha(Alpha > 1) = 1;
+  
+  
+  CRange = prctile(abs(Mpkm(:)),[2.5,97.5]);    
   
   %interpolate over small gaps (only have a 1d routine to do this)
   %first, gaps in longitude
@@ -190,7 +196,7 @@ for iMonth=1:1:12
 % %     otherwise; colormap(cbrew('rdYlBu',12));
 % %   end
   colormap(cbrew('RdYlBu',Settings.NColours));
-  caxis(CRange)
+%   caxis(CRange)
   
   %plot topography
   m_contour(Topo.lons,Topo.lats,Topo.elev,1:2:7,'color',[1,1,1].*0.4,'linewi',0.5);
