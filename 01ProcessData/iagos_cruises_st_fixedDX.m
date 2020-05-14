@@ -4,10 +4,18 @@ clearvars
 %% settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%general setup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %where is the data?
 Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
-Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_ST/'];
+Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
+
+%dates to loop over. A separate file will be produced for each day.
+Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
+
+%cruise identification
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %what time step to interpolate to?
 Settings.dt = 5; %second
@@ -18,14 +26,19 @@ Settings.dt = 5; %second
 Settings.MaxDz  = 100;%m
 Settings.Window = 15*60./Settings.dt;  %fifteen minutes
 
-%detrending window size
-Settings.Detrend = 30*60./Settings.dt;
+%spectral analysis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%smoothing size
-Settings.Smooth = 5*60./Settings.dt;
+%distance spacing
+Settings.SA.dx = 1; %km
 
-%dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
+%low-pass filter size
+Settings.SA.Detrend = 1000./Settings.SA.dx;
+
+%high-pass filter size
+Settings.SA.Smooth = 5./Settings.SA.dx;
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% variables to retain
@@ -35,9 +48,17 @@ Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
 Settings.Vars.Geo.In  = {'lat','lon','Time'};
 Settings.Vars.Geo.Out = {'Lat','Lon','Time'};
 
-%s-transform
-Settings.Vars.ST.In  = {'A','F1'};
-Settings.Vars.ST.Out = {'A','k'};
+%s-transform - temperature
+Settings.Vars.STT.In  = {'IN','A','F1'};
+Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k'};
+
+%s-transform - U
+Settings.Vars.STU.In  = {'IN','A','F1'};
+Settings.Vars.STU.Out = {'Uprime','STU_A','STU_k'};
+
+%s-transform - V
+Settings.Vars.STV.In  = {'IN','A','F1'};
+Settings.Vars.STV.Out = {'Vprime','STV_A','STV_k'};
 
 %metadata
 Settings.Vars.Meta.In  = {'air_press_AC','baro_alt_AC','zon_wind_AC','mer_wind_AC','air_temp_PM'};
@@ -51,11 +72,11 @@ Settings.Vars.Meta.Out = {'Prs','Z','U','V','T'};
 Settings.Window = round(Settings.Window);
 if ~isodd(Settings.Window); Settings.Window = Settings.Window+1; end
 
-Settings.Detrend = round(Settings.Detrend);
-if ~isodd(Settings.Detrend); Settings.Detrend = Settings.Detrend+1; end
+Settings.SA.Detrend = round(Settings.SA.Detrend);
+if ~isodd(Settings.SA.Detrend); Settings.SA.Detrend = Settings.SA.Detrend+1; end
 
-Settings.Smooth = round(Settings.Smooth);
-if ~isodd(Settings.Smooth); Settings.Smooth = Settings.Smooth+1; end
+Settings.SA.Smooth = round(Settings.SA.Smooth);
+if ~isodd(Settings.SA.Smooth); Settings.SA.Smooth = Settings.SA.Smooth+1; end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,7 +91,11 @@ for iDay = 1:1:numel(Settings.TimeScale)
   
   X = NaN(1,1);%will expand out as needed
   Results = struct();
-  Vars = [Settings.Vars.Geo.Out,Settings.Vars.ST.Out,Settings.Vars.Meta.Out];%,Settings.Vars.Special];
+  Vars = [Settings.Vars.Geo.Out, ...
+          Settings.Vars.STT.Out, ...
+          Settings.Vars.STU.Out, ...
+          Settings.Vars.STV.Out, ...          
+          Settings.Vars.Meta.Out];
   for iVar=1:1:numel(Vars);
     Results.(Vars{iVar}) = X;
   end
@@ -92,59 +117,98 @@ for iDay = 1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
-    try
+   try
       %load file, including unit conversions
       Data = prep_iagos(Files{iFile}, ...
                         'SamplingRate',1./24./60./60.*Settings.dt, ...
                         'CruiseDz',Settings.MaxDz, 'CruiseWindow',Settings.Window, ...
                         'ApplyFlags',true);
-      
+                      
       %loop over cruises
       for iCruise = 1:1:size(Data.Cruises,1)
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %find cruise info and regularly grid
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         
         %identify cruise
         Cruise = Data.Cruises(iCruise,:);
         Cruise = Cruise(~isnan(Cruise));
+                
+        %extract geolocation
+        Lat = Data.lat(Cruise);    
+        Lon = Data.lon(Cruise);     
         
-        %extract data
-        Var = Data.air_temp_AC(Cruise);
-        Lon = Data.lon(Cruise);
-        Lat = Data.lat(Cruise);
+        %get distances for regular interpolation
+        x = [Lat;Lon]'; y = circshift(x,1,1);
+        dx = nph_haversine(x,y); dx(1) = dx(2);
+        dxS = dx; for iX=2:1:numel(dxS); dxS(iX) = dxS(iX-1)+dxS(iX); end  
+        dx2 = 0:Settings.SA.dx:max(dxS);
+
+        %check we still have enough data to be useful
+        if numel(dx2) < 10; continue; end
+        
+        %interpolate all variables to fixed grid
+        Vars = fieldnames(Data);
+        Regular = struct();
+        for iVar=1:1:numel(Vars)
+          if strcmp(Vars{iVar},'MetaData');     continue; end
+          if strcmp(Vars{iVar},'OriginalTime'); continue; end
+          if strcmp(Vars{iVar},'Cruises');      continue; end
+          
+          Var = Data.(Vars{iVar});
+          Regular.(Vars{iVar}) = interp1(dxS,Var(Cruise),dx2);
+        end
+        clear iVar Vars dx dxS dx2 x y
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %detrend and s-transform T, U and V
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        T = Regular.air_temp_AC;
+        U = Regular.zon_wind_AC;
+        V = Regular.mer_wind_AC;
         
         %smooth out small scales
-        Var = smooth(Var,Settings.Smooth);
+        T = smooth(T,Settings.SA.Smooth);
+        U = smooth(U,Settings.SA.Smooth);
+        V = smooth(V,Settings.SA.Smooth);        
         
         %detrend large scales
-        BG = smooth(Var,Settings.Detrend);
-        Var = Var - BG;
-        
+        T = T-smooth(T,Settings.SA.Detrend);
+        U = U-smooth(U,Settings.SA.Detrend);
+        V = V-smooth(V,Settings.SA.Detrend);
+
         %s-transform
-        ST = nph_ndst(Var);
-        
-        
+        STT = nph_ndst(T);
+        STU = nph_ndst(U);
+        STV = nph_ndst(V);
+         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %variable storage
+        %store the outputs
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        for VarType = {'Geo','ST','Meta'}
+        for VarType = {'Geo','STT','STU','STV','Meta'}
           
           for iVar=1:1:numel(Settings.Vars.(VarType{1}).Out)
-            
+           
             %pull results array out of struct
             R = Results.(Settings.Vars.(VarType{1}).Out{iVar});
             
             %get data to store
             switch VarType{1};
-              case 'ST';  O = ST;   C = 1:numel(Cruise);
-              otherwise;  O = Data; C = Cruise;
+              case 'STT'; O = STT;
+              case 'STU'; O = STU;
+              case 'STV'; O = STV;
+              otherwise;  O = Regular;
             end
             O = O.(Settings.Vars.(VarType{1}).In{iVar});
             
             %store data, and fill any end-gaps with NaNs
             oldsize = size(R,2);
-            R(iCruise,1:numel(C)) = O(C);
-            if oldsize > numel(C);
-              R(iCruise,numel(C)+1:oldsize) = NaN;
+            R(iCruise,1:numel(O)) = O;
+            if oldsize > numel(O);
+              R(iCruise,numel(O)+1:oldsize) = NaN;
             end
             
             %put results back into struct
@@ -156,11 +220,11 @@ for iDay = 1:1:numel(Settings.TimeScale)
       
       
       
-    catch; end
+   catch; end
   end; clear iFile
   
   %finally, store the data for the day
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v2.mat'];
   save(OutFile,'Results','Settings')
 
 end

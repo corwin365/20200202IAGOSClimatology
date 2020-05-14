@@ -4,7 +4,11 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %generate monthly maps of IAGOS postprocessed data, composited over all years
 %
-%Corwin Wright, c.wright@bath.ac.uk, 2020/05/10
+%forked from parent routine to statistically bootstrap within each cluster
+%and work only over a restricted geographic range if desired
+%
+%
+%Corwin Wright, c.wright@bath.ac.uk, 2020/05/14
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -15,34 +19,39 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_st/'];
-Settings.OutFile = 'clusters_200hPa.mat';
+Settings.OutFile = 'v2_test.mat';
 
 %gridding - this is the final map gridding, based on where the clusters
 %fall, and does not represent the area averaged over.
-Settings.Lon = -180:1:180;
-Settings.Lat = -90:1:90;
+Settings.Lon = -150:.5:150;
+Settings.Lat = 0:.5:90;
 
 %restrict pressure range
 Settings.PrsRange = [200,250]; %hPa
 
 %variables
-Settings.Vars = {'A','k','Prs','U','V','T'};
+Settings.Vars = {'STT_A','STT_k','STU_A','STU_k','STV_A','STV_k','U','V','T'};
 
 %number of clusters
-Settings.NClusters = 100;%5000;
+Settings.NClusters = 2000;
 
 %maximum distance of a point from cluster centre (km)
 Settings.MaxDist = 500;
 
-%minimum number of points in a used cluster
-Settings.MinPoints = 100;%
+%minimum number of points in a cluster to be analysed
+Settings.MinPoints = 100;
+
+%bootstrapping parameters
+%first is number of samples per strap, second is number of straps
+Settings.NSamples = 1000;
+Settings.Straps   = 1000;
 
 %years to use
-Settings.Years = 2006;%1994:2000;%1994:1:2020;%;1994:1:2000;
+Settings.Years = 2006;%1994:1:2020;
 
 %statistics to compute for each cluster
 %numberical values are percentiles, text entries are specific stats
-Settings.Stats = {0,2.5,18,50,82,97.5,'gini','mean','stdev'};
+Settings.Stats = {'median','gini','mean','stdev'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -63,7 +72,7 @@ Results.N   = Results.Cid ; %number of points actually used in cluster
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %loop over months
-for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
+for iMonth = 1%:1:12 %hopefully this is an uncontentious number of months
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % get data for this month over all years
@@ -88,7 +97,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     if mod(iDay,20) == 1; textprogressbar(iDay./numel(Days).*100); end
     
     %find file for this day
-    ThisDayFile = wildcardsearch(Settings.DataDir,['*',num2str(Days(iDay)),'*']);
+    ThisDayFile = wildcardsearch(Settings.DataDir,['*',num2str(Days(iDay)),'*v2*']);
     if numel(ThisDayFile) == 0; clear ThisDayFile; continue; end
     
     %load data
@@ -99,26 +108,32 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     InPrsRange = find(ThisDayData.Results.Prs./100 >= min(Settings.PrsRange) ...
                     | ThisDayData.Results.Prs./100 <= max(Settings.PrsRange));
    
+    %and outside our geographic region
+    InLatRange = inrange(ThisDayData.Results.Lat,[min(Settings.Lat),max(Settings.Lat)]);
+    InLonRange = inrange(ThisDayData.Results.Lon,[min(Settings.Lon),max(Settings.Lon)]);
+    
+    %merge the three criteria
+    Good = intersect(InPrsRange,InLatRange);
+    Good = intersect(Good,      InLonRange);
+    
     %store what we need
     for iVar=1:1:numel(Vars);
       V = ThisDayData.Results.(Vars{iVar});
-      Data.(Vars{iVar}) = cat(1,Data.(Vars{iVar}),flatten(V(InPrsRange)));
+      Data.(Vars{iVar}) = cat(1,Data.(Vars{iVar}),flatten(V(Good)));
     end
 
 
     %and done!
-    clear ThisDayData iVar V InPrsRange
+    clear ThisDayData iVar V InPrsRange Good InLonRange InLatRange
     
   end
   textprogressbar(100);textprogressbar('!')
   
-
-  
   %my above algorithm leaves some zeros at the end where a longer time
   %series was added to a smaller one. these will all have [lat,lon] = [0,0]. 
-  %remove these. We'll also lose any real data at exactly [0,0], but this
-  %is pretty rare so it might be one or two points in 20 years of data.
-
+  %remove these. We'll also lose any real data at *exactly* [0,0], but this
+  %is pretty rare due to the precision of the data (it might never occur.)
+  
   Bad = find(Data.Lon == 0 & Data.Lat == 0);
   Good = 1:1:numel(Data.Lon); Good(Bad) = [];
   for iVar=1:1:numel(Vars);
@@ -145,30 +160,36 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   %the large area covered
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
+  disp('Computing clusters')
+  
   %we have far too many points to be tractable in computer time
   %but we know that they're very heavily clumped, since aircraft follow
-  %fixed routes. So, let's treat anything in a .2x.2 degree box as
+  %fixed routes. So, let's treat anything in a .25x.25 degree box as
   %'saturated' and as a single point for the cluster generation process
-  Lat = round(Data.Lat.*5);
-  Lon = round(Data.Lon.*5);
+  Lat = round(Data.Lat./.25);
+  Lon = round(Data.Lon./.25);
   Combo = Lat + 1000.*Lon;
   [~,idx] = unique(Combo);
   clear Combo Lat Lon
   
-  stream = RandStream('mlfg6331_64');  % Random number stream
-  options = statset('UseParallel',1,'UseSubstreams',1,...
-                    'Streams',stream);
+%    stream = RandStream('mlfg6331_64');  % Random number stream
+%    options = statset('UseParallel',1,'UseSubstreams',1,...
+%                      'Streams',stream);
   [~,C] = kmeans([Data.Lat(idx),Data.Lon(idx)], ...
                  Settings.NClusters, ...
-                 'Distance','cityblock',...
+                 'Distance','sqeuclidean',...
                  'MaxIter',1000, ...
                  'Replicates',10, ...
-                 'Display','final', ...
-                 'Options',options);
+                 'Display','off');%, ...
+%                   'Options',options);
 
 
   %now, find where all the un-clustered points go
-  [~,idx] = pdist2(C,[Data.Lat,Data.Lon],'euclidean','Smallest',1);
+  [dx,idx] = pdist2(C,[Data.Lat,Data.Lon],'euclidean','Smallest',1);
+  
+  %remove points too far away to be fairly included in a cluster
+  idx(dx > Settings.MaxDist) = [];
+  
   
   %store the cluster ids against the data
   Data.Cluster = Data.Lon .* NaN;
@@ -177,14 +198,17 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   end; clear iCluster
  
  
-  clear idx
+  clear idx dx
+  
+  
+  disp('Clusters assigned')  
   
   %% assign all geographic points to their nearest cluster centre
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   %create results arrays
   CC = NaN( numel(Settings.Lon),numel(Settings.Lat));
-  CD = ones(numel(Settings.Lon),numel(Settings.Lat)).*1e6;
+  CD = ones(numel(Settings.Lon),numel(Settings.Lat)).*1e7; %1e7km is a fill value that should be larger than any real distance
   
   %create lat/lon grid
   [xi,yi] = ndgrid(Settings.Lon,Settings.Lat);
@@ -200,7 +224,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     clear A B
     
     %discard any points too far from a cluster centre
-    dx(dx > Settings.MaxDist) = 1e6;
+    dx(dx > Settings.MaxDist) = 1e7;
     
  
    if iCluster == 1; 
@@ -226,15 +250,16 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   disp('Clusters mapped')
   
   clear iCluster Delta dx  C Closer  CD xi yi
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%
   %We now know which point on the map goes with which cluster
   %now find a median for each cluster and map it
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
-  textprogressbar('Gridding data ')
+  textprogressbar('Bootstrapping and gridding data ')
   for iVar=1:1:numel(Settings.Vars);
-    textprogressbar(iVar./numel(Settings.Vars).*100)
+    textprogressbar((iVar-1)./numel(Settings.Vars).*100)
     
     %get data
     V = Data.(Settings.Vars{iVar});
@@ -243,42 +268,63 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     ClusterStats = NaN(max(CC(:)),numel(Settings.Stats));
     for iCluster = 1:1:max(CC(:))
       
+      %pull out the data we have in this cluster, and check it's enough points
       ThisCluster = V(Data.Cluster == iCluster);
+      
+      %also remove nans. This means we can use non-nansafe routines, which
+      %will speed things up a lot at this volume of data
+      ThisCluster = ThisCluster(~isnan(ThisCluster));
+      
       if numel(ThisCluster) < Settings.MinPoints; continue; end
       
+      %bootstrapping time. sample the data first.
+      r = randi(numel(ThisCluster),Settings.NSamples,Settings.Straps);
+      ThisCluster = ThisCluster(r);
+      
       for iStat= 1:1:numel(Settings.Stats)
+        
+        %declare array for the bootstraps
+        Straps = NaN(Settings.Straps,1);
+        
+        %compute the properties
         switch Settings.Stats{iStat}
           case 'gini';
-            Stat = ginicoeff(ThisCluster);
+            %only defined for positive data. It's also really slow. So only use for GW amplitudes.
+            if strfind(Settings.Vars{iVar},'ST') & strfind(Settings.Vars{iVar},'_A')
+              Straps= ginicoeff(ThisCluster,1);
+            end
           case 'mean';
-            Stat = mean(ThisCluster(:));
+            Straps= mean(ThisCluster,1);
+          case 'median';
+            Straps= median(ThisCluster,1);            
           case 'stdev';
-            Stat = nanstd(ThisCluster(:));
+            Straps = std(ThisCluster,[],1);
           otherwise
             if isnumeric(Settings.Stats{iStat});
-              Stat = prctile(ThisCluster(:), Settings.Stats{iStat});
+              Straps = prctile(ThisCluster, Settings.Stats{iStat},1);
             else
               disp('Statistic not specified')
             end
         end
-        ClusterMedians(iCluster,iStat) = Stat;
+
+        %take the median        
+        ClusterStats(iCluster,iStat) = nanmedian(Straps);
       end
-    end; clear iCluster V Stat ThisCluster iStat
+    end; clear iCluster V Stat ThisCluster iStat idx iStrap
     
     %put the data onto the map
     R = Results.(Settings.Vars{iVar});
     for iStat=1:1:numel(Settings.Stats)
       Ri = R(iMonth,:,:,iStat);
       for iCluster = 1:1:max(CC(:))
-        ThisCluster = find(CC == iCluster);
-        Ri(ThisCluster) = ClusterMedians(iCluster,iStat);
+        Ri(CC == iCluster) = ClusterStats(iCluster,iStat);
       end
       R(iMonth,:,:,iStat) = Ri;
     end
     Results.(Settings.Vars{iVar}) = R;
     
     
-    clear R Ri iCluster ThisCluster
+    clear R Ri iCluster ThisCluster ClusterStats
   end; clear iVar  
   
   %also store cluster map
@@ -299,7 +345,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   Results.N = R;
   clear R Ri iCluster  CC ThisCluster
   
-  textprogressbar('!')
+  textprogressbar(100);textprogressbar('!')
   
   
   

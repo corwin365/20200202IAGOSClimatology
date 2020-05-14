@@ -13,13 +13,16 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'clustertest_mean.mat';%'IAGOS_maps_200hPa_median.mat';
+Settings.DataFile = 'v2_test.mat';
 
 %variable to plot
-Settings.Var = 'A';
+Settings.Var = 'STV_A';
+
+%statistic to plot (number in order of input file)
+Settings.Stat = 3; %For N and Cid this must be 1.
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*9;
+Settings.SmoothSize =[1,1];%.*7;
 
 %colours
 Settings.NColours = 16;
@@ -45,7 +48,7 @@ A = 112 .* 112. *cosd(yi);  %km^2 per gridbox
 Mpkm = NaN.*Data.Results.N;
 for iMonth=1:1:12;
   
-  %pull out clister ids for month
+  %pull out cluster ids for month
   Cid = squeeze(Data.Results.Cid(iMonth,:,:));
   N   = squeeze(Data.Results.N(  iMonth,:,:));
   if nansum(Cid == 0); continue; end
@@ -77,11 +80,12 @@ clear yi A iMonth Cid N ThisMonth ThisCid Cluster Area Ntm
 Data.Results.W = quadadd(Data.Results.U,Data.Results.V);
 
 %and latitude derivative of wind
-Data.Results.dW = diff(Data.Results.W,1,3); Data.Results.dW(end,end,end+1) = NaN;
+Data.Results.dW = diff(Data.Results.W,1,3); Data.Results.dW(end,end,end,end+1) = NaN;
 Data.Results.absdW = abs(Data.Results.dW);
 
-%find desired var
+%find desired var and stat
 Data.Results = Data.Results.(Settings.Var);
+Data.Results = Data.Results(:,:,:,Settings.Stat);
 
 %special handling
 switch Settings.Var
@@ -95,8 +99,9 @@ end
 switch Settings.Var   
   case {'U','V'};               CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
   case {'dW'};                  CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
-  case {'T','Prs','A','W'};     CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
-  case {'k'};                   CRange = [200,600];
+  case {'Prs','A','W'};     CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
+  case {'k'};   CRange = [200,600];
+  case {'T'};   CRange = [200 250];
   otherwise;                    CRange = [0,prctile(Data.Results(:),97.5)];
 end  
 
@@ -110,6 +115,32 @@ lat2 = -90:0.5:90;
 Topo.elev = interp2(Topo.lons,Topo.lats,Topo.elev,xi,yi);
 Topo.lons = xi; Topo.lats = yi; clear xi yi
 
+
+%name that stat!
+switch Data.Settings.Stats{Settings.Stat}
+  case 'gini';    StatName = 'Gini Coefficient';
+  case 'mean';    StatName = 'Mean';
+  case 'stdev';   StatName = 'Standard Deviation';
+  otherwise;
+    if isnumeric(Data.Settings.Stats{Settings.Stat});
+      StatName = [num2str(Data.Settings.Stats{Settings.Stat}),'th %ile'];
+    else;      
+      StatName = '???';
+    end
+end
+    
+%name that variable
+switch Settings.Var
+  case 'A';    VarName = 'Wave Amplitude';
+  case 'k';    VarName = 'Along-flight Wavelength';
+  case 'T';    VarName = 'Temperature';
+  case 'U';    VarName = 'Zonal Wind Speed';
+  case 'V';    VarName = 'Merid. Wind Speed';
+  case 'Prs';  VarName = 'Air Pressure';
+  otherwise;   VarName = Settings.Var;
+end
+    
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% plot each month
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,13 +148,14 @@ Topo.lons = xi; Topo.lats = yi; clear xi yi
 %plot settings
 clf
 set(gcf,'color','w')
-subplot = @(m,n,p) subtightplot (m, n, p, 0.03, 0.025, 0.025);
+subplot = @(m,n,p) subtightplot (m, n, p, 0.03, 0.025, [0.025,0.1]);
 
-for iMonth=1:1:12
+for iMonth=1%:1:12
   
   %create subplot
-  subplot(3,4,iMonth)
-  
+%   subplot(3,4,iMonth)
+%   subplot(1,3,iMonth)  
+
   %plot settings
   cla
   
@@ -173,13 +205,15 @@ for iMonth=1:1:12
   
   %no colours below table
   ToPlot(ToPlot < min(CRange)) = min(CRange);
-  
+ 
+  %colour levels
+  CLevels = linspace(min(CRange),max(CRange),Settings.NColours+1);
  
   
   %plot data
-% %   m_contourf(Data.Settings.Lon, ...
-% %              Data.Settings.Lat, ...
-% %              ToPlot,linspace(min(CRange),max(CRange),Settings.NColours),'edgecolor','none');
+%   m_contourf(Data.Settings.Lon, ...
+%              Data.Settings.Lat, ...
+%              ToPlot,CLevels,'edgecolor','none');
   m_pcolor(Data.Settings.Lon,Data.Settings.Lat,ToPlot);
   hold on
   shading flat
@@ -203,6 +237,6 @@ for iMonth=1:1:12
   
   
 end
-%
-colorbar('southoutside','Position',[0.42,0.66,0.16,0.03])
-sgtitle(Settings.Var,'fontsize',24)
+%%
+cb = colorbar('eastoutside','Position',[0.92,0.36,0.02,0.3]);
+cb.Label.String = [StatName,' of ',VarName];
