@@ -16,13 +16,13 @@ clearvars
 Settings.DataFile = 'v2_test.mat';
 
 %variable to plot
-Settings.Var = 'STT_A';
+Settings.Var = 'N';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %For N and Cid this must be 1.
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*9;
+Settings.SmoothSize =[1,1];%.*7;
 
 %colours
 Settings.NColours = 16;
@@ -102,11 +102,11 @@ switch Settings.Var
   case {'Prs','A','W'};     CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
   case {'k'};   CRange = [200,600];
   case {'T'};   CRange = [200 250];
-  otherwise;                    CRange = [0,prctile(Data.Results(:),97.5)];
+  otherwise;                    CRange = [1.5,prctile(log10(Data.Results(:)),97.5)];
 end  
 
 %load topography
-Topo = topo_etc([-180,179],[-90,89]);
+Topo = topo_etc([-150,150],[0,89]);
 
 %downsample topography
 lon2 = -180:0.5:180;
@@ -150,23 +150,21 @@ clf
 set(gcf,'color','w')
 subplot = @(m,n,p) subtightplot (m, n, p, 0.03, 0.025, [0.025,0.1]);
 
-for iMonth=1:1:12
+for iMonth=2%:1:12
   
   %create subplot
-  subplot(3,4,iMonth)
+%   subplot(3,4,iMonth)
 %   subplot(1,3,iMonth)  
-% subplot(2,2,iMonth)
 
   %plot settings
   cla
   
   %create map
-%   m_proj('lambert','lon',[-130,130],'lat',[20,77]);
+  m_proj('lambert','lon',[-130,130],'lat',[20,77]);
 %   m_proj('stereographic','lat',90,'long',0,'radius',90);
-  m_proj('lambert','lon',[-140,150],'lat',[5,80]);
 
   %get data
-  ToPlot = squeeze(Data.Results(iMonth,:,:))';
+  ToPlot = log10(squeeze(Data.Results(iMonth,:,:))');
   
   %interpolate over small gaps (only have a 1d routine to do this)
   %first, gaps in longitude

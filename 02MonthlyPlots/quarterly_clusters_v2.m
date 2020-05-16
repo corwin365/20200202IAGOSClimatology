@@ -8,7 +8,7 @@ clearvars
 %and work only over a restricted geographic range if desired
 %
 %
-%Corwin Wright, c.wright@bath.ac.uk, 2020/05/14
+%Corwin Wright, c.wright@bath.ac.uk, 2020/05/15
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -19,7 +19,7 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_st/'];
-Settings.OutFile = 'v2_test.mat';
+Settings.OutFile = 'v2_q.mat';
 
 %gridding - this is the final map gridding, based on where the clusters
 %fall, and does not represent the area averaged over.
@@ -30,24 +30,30 @@ Settings.Lat = -90:.5:90;
 Settings.PrsRange = [190,260]; %hPa
 
 %variables
-Settings.Vars = {'STT_A','STT_k','STU_A','STU_k','STV_A','STV_k','U','V','T'};
+Settings.Vars = {'STT_A','STT_k','U','V','T'};
 
 %number of clusters
-Settings.NClusters = 2000;
+Settings.NClusters = 3000;
 
 %maximum distance of a point from cluster centre (km)
 Settings.MaxDist = 500;
 
 %minimum number of points in a cluster to be analysed
-Settings.MinPoints = 100;
+Settings.MinPoints = 2500;
 
 %bootstrapping parameters
 %first is number of samples per strap, second is number of straps
-Settings.NSamples = 1000;
+Settings.NSamples = 5000;
 Settings.Straps   = 1000;
 
 %years to use
 Settings.Years = 1994:1:2020;
+
+%quarters to use
+Q.Q1 = date2doy(datenum(1994,12,1):1:datenum(1995, 2,28));
+Q.Q2 = date2doy(datenum(1995, 3,1):1:datenum(1995, 5,31));
+Q.Q3 = date2doy(datenum(1995, 6,1):1:datenum(1995, 8,31));
+Q.Q4 = date2doy(datenum(1995, 9,1):1:datenum(1995,11,30));
 
 %statistics to compute for each cluster
 %numberical values are percentiles, text entries are specific stats
@@ -57,33 +63,33 @@ Settings.Stats = {'median','gini','mean','stdev'};
 %% create results arrays
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-X = NaN(12,numel(Settings.Lon),numel(Settings.Lat),numel(Settings.Stats));
+X = NaN(4,numel(Settings.Lon),numel(Settings.Lat),numel(Settings.Stats));
 Results = struct();
 for iVar=1:1:numel(Settings.Vars)
   Results.(Settings.Vars{iVar}) = X;
 end;
 clear iVar X
 
-Results.Cid = NaN(12,numel(Settings.Lon),numel(Settings.Lat)); %cluster id
+Results.Cid = NaN(4,numel(Settings.Lon),numel(Settings.Lat)); %cluster id
 Results.N   = Results.Cid ; %number of points actually used in cluster
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% do it!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+load(Settings.OutFile)
 %loop over months
-for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
+for iQuarter = 2:1:4 %this is definitely an uncontentious number of quarters
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % get data for this month over all years
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   
-  %find all days in this month over all years
+  %find all days in this qarter over all years
   Days = [];
   for  iYear=1:1:numel(Settings.Years)
-    Days = [Days,datenum(Settings.Years(iYear),iMonth,1):1:datenum(Settings.Years(iYear),iMonth+1,1)-1];
+    Days = [Days,datenum(Settings.Years(iYear),1,Q.(['Q',num2str(iQuarter)]))];
   end
-  
+
   %create temporary data storage arrays
   Data = struct();
   Vars = [Settings.Vars,'Lat','Lon']; %geoloc needed for binning
@@ -92,7 +98,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   end
   
   %load data
-  textprogressbar(['Loading data for ',datestr(Days(1),'mmmm'),' ']);
+  textprogressbar(['Loading data for Q',num2str(iQuarter),' ']);
   for iDay=1:1:numel(Days)
     if mod(iDay,20) == 1; textprogressbar(iDay./numel(Days).*100); end
     
@@ -179,7 +185,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
                  Settings.NClusters, ...
                  'Distance','sqeuclidean',...
                  'MaxIter',1000, ...
-                 'Replicates',100, ...
+                 'Replicates',10, ...
                  'Display','off');%, ...
 %                   'Options',options);
 
@@ -315,11 +321,11 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
     %put the data onto the map
     R = Results.(Settings.Vars{iVar});
     for iStat=1:1:numel(Settings.Stats)
-      Ri = R(iMonth,:,:,iStat);
+      Ri = R(iQuarter,:,:,iStat);
       for iCluster = 1:1:max(CC(:))
         Ri(CC == iCluster) = ClusterStats(iCluster,iStat);
       end
-      R(iMonth,:,:,iStat) = Ri;
+      R(iQuarter,:,:,iStat) = Ri;
     end
     Results.(Settings.Vars{iVar}) = R;
     
@@ -329,19 +335,19 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   
   %also store cluster map
   R = Results.Cid;
-  R(iMonth,:,:) = CC;
+  R(iQuarter,:,:) = CC;
   Results.Cid = R;
   clear xi yi zz R 
   
   %and number of points used
   R = Results.N;
-  Ri = R(iMonth,:,:); Ri(:) = 0;
+  Ri = R(iQuarter,:,:); Ri(:) = 0;
   for iCluster = 1:1:max(CC(:))
     ThisCluster = find(CC == iCluster);
     N = numel(find(Data.Cluster == iCluster));
     Ri(ThisCluster) = Ri(ThisCluster)+N;
   end
-  R(iMonth,:,:) = Ri;
+  R(iQuarter,:,:) = Ri;
   Results.N = R;
   clear R Ri iCluster  CC ThisCluster
   
@@ -351,7 +357,7 @@ for iMonth = 1:1:12 %hopefully this is an uncontentious number of months
   
   %done. save
 save(Settings.OutFile,'Results','Settings')
-end; clear iMonth
+end; clear iQuarter
 
 %done. save
 save(Settings.OutFile,'Results','Settings')

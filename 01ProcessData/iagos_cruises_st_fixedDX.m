@@ -12,7 +12,7 @@ Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
 Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 
 %dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
+Settings.TimeScale = datenum(2018,1,1):1:datenum(2018,12,31);
 
 %cruise identification
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,7 +117,7 @@ for iDay = 1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
-   try
+%    try
       %load file, including unit conversions
       Data = prep_iagos(Files{iFile}, ...
                         'SamplingRate',1./24./60./60.*Settings.dt, ...
@@ -220,11 +220,11 @@ for iDay = 1:1:numel(Settings.TimeScale)
       
       
       
-   catch; end
+%    catch; end
   end; clear iFile
   
   %finally, store the data for the day
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v2.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v3.mat'];
   save(OutFile,'Results','Settings')
 
 end

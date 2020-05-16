@@ -15,23 +15,23 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_ST/'];
-Settings.OutFile = 'IAGOS_maps_200hPa_median.mat';
+Settings.OutFile = 'map_allheights.mat';
 
 %gridding
-Settings.Lon = -180:2:180;
-Settings.Lat =-90:2:90;
+Settings.Lon = -180:5:180;
+Settings.Lat =-90:5:90;
 
 %restrict pressure range
-Settings.PrsRange = [200,250]; %hPa
+Settings.PrsRange = [0,1000]; %hPa
 
 %variables
-Settings.Vars = {'A','k','Prs','Z','U','V','T'};
+Settings.Vars = {'Z'};
 
 % % %outlier cutoff
 % % Settings.CutOff = [5,95];
 
 %years to use
-Settings.Years = 1994:1:2020;
+Settings.Years = 2016:2018;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
