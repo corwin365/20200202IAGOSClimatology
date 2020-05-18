@@ -1,8 +1,5 @@
-clearvars
+clearvars -except YEAR
 
-
-disp('does not work')
-stop
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -10,7 +7,7 @@ stop
 %%find tropopause in ERA5 data
 %%
 %%
-%%approximates the method of Reichler (2003, GRL)
+%%assumes p2h is true.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -21,20 +18,11 @@ stop
 
 %file and time handling
 Settings.DataDir = [LocalDataDir,'/ERA5'];
-Settings.OutFile = 'era5_tropopause.mat';
-Settings.TimeScale = datenum(2010,1,1):datenum(2010,1,5);
+Settings.OutFile = [LocalDataDir,'/corwin/era5_tropopause_',num2str(YEAR),'.mat'];
+Settings.TimeScale = datenum(YEAR,1,1):datenum(YEAR,12,31);
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% constants
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-C.R  = 287;
-C.cp = 1;
-C.g  = 9.81;
-
-C.K = C.R ./ C.cp;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% processing (output files created inside loop on first iteration)
@@ -54,8 +42,10 @@ for iDay=1:1:numel(Settings.TimeScale)
   clear yy dd File
   
   %store geoloc for later
-  Lat = Data.latitude;
-  Lon = Data.longitude;
+  if ~exist('Results');
+    Lat = Data.latitude;
+    Lon = Data.longitude;
+  end
   
   %extract temperature
   T = Data.t;
@@ -68,30 +58,21 @@ for iDay=1:1:numel(Settings.TimeScale)
   clear idx
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %% algorithm step 1: lapse rate 
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
-  %find half-level pressures
-  Ph = 0.5 .*(Prs + circshift(Prs,1,1));
-  Ph = Ph(2:end); %can't use due to circshift
-  
-  %find lapse rate at each half-level
-  P = permute(repmat(permute(Prs,[2,3,4,1]),size(T,1),size(T,2),size(T,4),1),[1,2,4,3]);
-  Term1 = diff(T,1,3)./diff(P,1,3);
-  
-  Term2 = (P + circshift(P,1,3)) ./ (T + circshift(T,1,3));
-  Term2 = Term2(:,:,2:end,:);
-  
-  Term3 = C.K .* C.g ./ C.R;
-  
-  Gamma = Term1 .* Term2 .* Term3;
-  stop
-  clear Term1 Term2 Term3 T Prs P
+  %% step 1: lapse rate 
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+  Z = p2h(Prs);
+  dT = diff(T,1,3);
+  dZ = diff(Z);
 
+  Gamma = dT .* NaN;
   
-  stop
+  for iLevel=1:1:numel(dZ);
+    Gamma(:,:,iLevel,:) = dT(:,:,iLevel,:)./dZ(iLevel);
+  end; clear iLevel dT dZ Z T
+ 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  %% algorithm step 2: find tropopause
+  %% step 2: find tropopause
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
   
   %create an array to store our tropopause levels
@@ -101,21 +82,21 @@ for iDay=1:1:numel(Settings.TimeScale)
   
   
   %loop over half-levels
-  textprogressbar('Finding tropopause ')
+  textprogressbar([datestr(Settings.TimeScale(iDay)),' '])
   for iLevel = 1:1:136
     textprogressbar(iLevel./136.*100)
     %if we've already found all the tropopauses, continue
     if sum(isnan(Tropopause(:))) == 0; continue; end
     %if half-pressure > 550hPa, skip
-    if Ph(iLevel) > 550; continue; end
+    if Prs(iLevel) > 550; continue; end
     %if half-pressure < 75, skip
-    if Ph(iLevel) < 75; continue; end
+    if Prs(iLevel) < 75; continue; end
 
     %check if Gamma is less than -2
     idx = find(Gamma(:,:,iLevel,:) < -2);
     
-    %remove any where we already found the tropopause
-    if nansum(Tropopause) ~=0; stop; end
+%     %remove any where we already found the tropopause
+%     if nansum(Tropopause) ~=0; stop; end
     
     if numel(idx) == 0; continue; end %none at this level
     
@@ -123,8 +104,8 @@ for iDay=1:1:numel(Settings.TimeScale)
     %2km higher also meets it
     
     %find which level is 2km above
-    Z = p2h(Ph(iLevel));
-    jLevel = closest(p2h(Ph),Z+2);
+    Z = p2h(Prs(iLevel));
+    jLevel = closest(p2h(Prs),Z+2);
     Range = sort([iLevel,jLevel],'ascend'); 
     Range = Range(1):1:Range(2);
     clear Z jLevel
@@ -134,29 +115,59 @@ for iDay=1:1:numel(Settings.TimeScale)
     sz = size(G2);
     G2 = reshape(G2,sz(1)*sz(2)*sz(3),sz(4));
     G2 = G2(idx,:);
-    clear Range sz
+    clear Range
     
     %find all the columns where the criterion remains met for 2km above
     StillMet = min(G2,[],2);
     Good = find(StillMet < -2);
     idx = idx(Good);
-% %     stop
-% %     
-% %     %ok. all of these meet the criterion
-% %     %now, for each one find the actual tropopause via interpolation
-% %     stop    
+    
 
+    %find where the gradient crossed above -2 by linear interpolation
+    G3 = permute(Gamma(:,:,iLevel+[-1:1],:),[1,2,4,3]);
+    G3 = reshape(G3,sz(1)*sz(2)*sz(3),3);
+    G3 = G3(idx,:);
+    p2 = linspace(Prs(iLevel-1),Prs(iLevel+1),10);
+    G3 = interp1(Prs(iLevel+[-1:1]),G3',p2);
+    G3 = abs(G3 + 2);
+    [~,G3] = min(G3,[],1);
+    Val = p2(G3);
     
     %yay :-) store, and remove these columns from the lapse rate data
-    Tropopause(idx) = Ph(iLevel);
+    Tropopause(idx) = Val;
+    clear idx Good StillMet G2 sz
     
     
     
   end; clear iLevel
-  textprogressbar(1); textprogressbar('!')
-  stop
-    
+  textprogressbar(100); textprogressbar('!')
   
-end
 
+  %fill gaps via interpolation
+  for iTime=1:1:8
+    Tropopause(:,:,iTime) = inpaint_nans(Tropopause(:,:,iTime));
+  end; clear iTime
+    
+  %save
+  if ~exist('Results');
+    Results.Tropopause = repmat(Tropopause,1,1,1,numel(Settings.TimeScale)).*NaN;
+    Results.t   = Settings.TimeScale;
+    Results.Lat = Lat;
+    Results.Lon = Lon;
+    Results.h   = 0:3:21;
+    clear Lon Lat
+  end
+    
+  Results.Tropopause(:,:,:,iDay) = Tropopause;
+
+  if mod(iDay,20) == 0
+    save(Settings.OutFile,'Results','Settings')
+  end
+  
+  %tidy up
+  clear Tropopause Gamma Prs
+
+  
+end; clear iDay
+save(Settings.OutFile,'Results','Settings')
 

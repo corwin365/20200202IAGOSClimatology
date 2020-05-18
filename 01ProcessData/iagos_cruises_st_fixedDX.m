@@ -132,7 +132,7 @@ for iDay = 1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
-wik   try
+  try
       %load file, including unit conversions
       
       %in this step we interpolate to time to identify the cruises. space
@@ -272,9 +272,9 @@ wik   try
       
       %finally, store the data for the day
       save(OutFile,'Results','Settings')
-%    catch; 
-%      disp(['Error on ',datestr(Settings.TimeScale(iDay))])
-%    end
+   catch; 
+     disp(['Error on ',datestr(Settings.TimeScale(iDay))])
+   end
   end; clear iFile
   
 
