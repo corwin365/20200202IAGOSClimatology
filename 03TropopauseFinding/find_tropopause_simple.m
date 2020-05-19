@@ -80,25 +80,29 @@ for iDay=1:1:numel(Settings.TimeScale)
   Tropopause = NaN(sz([1,2,4]));
   clear sz
   
-  
   %loop over half-levels
   textprogressbar([datestr(Settings.TimeScale(iDay)),' '])
   for iLevel = 1:1:136
     textprogressbar(iLevel./136.*100)
     %if we've already found all the tropopauses, continue
     if sum(isnan(Tropopause(:))) == 0; continue; end
-    %if half-pressure > 550hPa, skip
-    if Prs(iLevel) > 550; continue; end
-    %if half-pressure < 75, skip
-    if Prs(iLevel) < 75; continue; end
-
-    %check if Gamma is less than -2
-    idx = find(Gamma(:,:,iLevel,:) < -2);
     
-%     %remove any where we already found the tropopause
-%     if nansum(Tropopause) ~=0; stop; end
+    %if pressure > 700hPa, skip
+    if Prs(iLevel) > 700; continue; end
+    
+    %if pressure < 10, skip
+    if Prs(iLevel) < 10; continue; end
+
+    %check if Gamma is greater than -2
+    idx = find(Gamma(:,:,iLevel,:) > -2);
     
     if numel(idx) == 0; continue; end %none at this level
+    
+    %remove any columns we already found
+    Found = find(~isnan(Tropopause));
+    [~,Remove] = intersect(idx,Found);
+    idx(Remove) = [];
+    clear Remove
     
     %for each element where the above criterion is met, check if the layer
     %2km higher also meets it
@@ -119,8 +123,9 @@ for iDay=1:1:numel(Settings.TimeScale)
     
     %find all the columns where the criterion remains met for 2km above
     StillMet = min(G2,[],2);
-    Good = find(StillMet < -2);
+    Good = find(StillMet > -2);
     idx = idx(Good);
+    if numel(Good) <2 ; continue; end %0 is obviously wrong, excluding 1 bypasses a minor bug with array shapes below that isn't worth fixing for single pixels we can interpolate over at the end
     
 
     %find where the gradient crossed above -2 by linear interpolation
@@ -135,13 +140,9 @@ for iDay=1:1:numel(Settings.TimeScale)
     
     %yay :-) store, and remove these columns from the lapse rate data
     Tropopause(idx) = Val;
-    clear idx Good StillMet G2 sz
-    
-    
     
   end; clear iLevel
   textprogressbar(100); textprogressbar('!')
-  
 
   %fill gaps via interpolation
   for iTime=1:1:8
@@ -154,7 +155,7 @@ for iDay=1:1:numel(Settings.TimeScale)
     Results.t   = Settings.TimeScale;
     Results.Lat = Lat;
     Results.Lon = Lon;
-    Results.h   = 0:3:21;
+    Results.h   = (0:3:21)./24;
     clear Lon Lat
   end
     
