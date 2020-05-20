@@ -12,7 +12,7 @@ Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
 Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 
 %dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(2012,1,1):1:datenum(2020,12,31);
+Settings.TimeScale = datenum(1994,8,1):1:datenum(2020,12,31);
 
 %cruise identification
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,10 +33,10 @@ Settings.MinCruiseLength = 1000;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %distance spacing
-Settings.SA.dx = 1; %km
+Settings.SA.dx = 2; %km
 
 %maximum gap size
-Settings.SA.MaxSpaceGap = 40; %km
+Settings.SA.MaxSpaceGap = 40./Settings.SA.dx; %km
 
 %low-pass filter size
 Settings.SA.Detrend = 1000./Settings.SA.dx;
@@ -87,7 +87,7 @@ if ~isodd(Settings.SA.Smooth); Settings.SA.Smooth = Settings.SA.Smooth+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for iDay = numel(Settings.TimeScale):-1:1
+for iDay =numel(Settings.TimeScale):-1:1
   
   OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v3.mat'];
   
@@ -95,7 +95,7 @@ for iDay = numel(Settings.TimeScale):-1:1
     
     %check when file was last modified 
     file = dir(OutFile);
-    if datenum(file.date) > datenum(2020,5,20,21,30,0);     
+    if datenum(file.date) > datenum(2020,5,20,22,05,0);     
       disp([datestr(Settings.TimeScale(iDay)),' already done'])
       continue; 
     end
@@ -168,7 +168,7 @@ for iDay = numel(Settings.TimeScale):-1:1
         else              Unique = 1:1:numel(dxS);
         end
          
-        %check all points are non-NaN
+        %check all distance points are non-NaN
         Good = find(~isnan(dxS(Unique)));
         Unique = Unique(Good);
         clear Good
@@ -188,8 +188,12 @@ for iDay = numel(Settings.TimeScale):-1:1
           if strcmp(Vars{iVar},'Cruises');      continue; end
           
           Var = Data.(Vars{iVar});
-          if sum(~isnan(Var(Cruise))) <2 ; continue; end
+          if sum(~isnan(Var(Cruise(Unique)))) <2 ; continue; end
+          
           Regular.(Vars{iVar}) = interp1gap(dxS(Unique),Var(Cruise(Unique)),dx2,Settings.SA.MaxSpaceGap);
+          
+          %scale pressures
+          if strcmp(Vars{iVar},'Prs'); Regular.(Vars{iVar}) = Regular.(Vars{iVar})./100; end
           
         end
         Regular.dxS = dx2;
