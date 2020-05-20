@@ -16,7 +16,7 @@ clearvars
 
 TPSettings.DataDir.Trop  = '.';
 TPSettings.DataDir.IAGOS =  [LocalDataDir,'/corwin/IAGOS_st/'];
-TPSettings.TimeScale  = datenum(2017,1,1):1:datenum(2017,12,31);
+TPSettings.TimeScale  = datenum(2012,1,1):1:datenum(2020,12,31);
 
 
 
@@ -27,6 +27,13 @@ TPSettings.TimeScale  = datenum(2017,1,1):1:datenum(2017,12,31);
 %don't reload ECMWF file every year
 TropData = struct();
 TropData.File = '';
+
+
+dd = date2doy(TPSettings.TimeScale);
+[~,idx] = sort(dd,'asc');
+TPSettings.TimeScale = TPSettings.TimeScale(idx);
+clear idx dd
+
 
 for iDay=1:1:numel(TPSettings.TimeScale)
   disp(datestr(TPSettings.TimeScale(iDay)))
@@ -82,8 +89,24 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   %interpolate data
   Data.Results.TropPres = single(TropData.I(Data.Results.Lon,Data.Results.Lat,Data.Results.Time));
   
-  %also convert the pressur ein the file to hPa, for consistency
-  Data.Results.Prs = Data.Results.Prs ./ 100;
+  %also convert the IAGOS pressure in the file to hPa, for consistency
+  %MADE A BIG MISTAKE EARLIER WITH THIS, THIS BIT OF CODE SHOULD FIX IT
+  fac = round(log10(nanmean(round(Data.Results.Prs(Data.Results.Prs ~= 0).*100)./100)));
+  if  fac == 2;
+      disp('PRESSURES FINE')
+  else
+      disp(['CORRECTING PRESSURES BY FACTOR ',num2str(fac)])
+    Data.Results.Prs = Data.Results.Prs./ 10.^(fac-2);
+    disp(['Mean now ',num2str(round(nanmean(Data.Results.Prs(Data.Results.Prs ~= 0))))])
+  end
+
+  
+  %I got this wrong the first time, so next time I process new data work
+  %out what the actual correction is (all existing files have been
+  %corrected)
+%   stop
+%   Data.Results.Prs = Data.Results.Prs .* 100 .*100 .* 100 .* 100;
+
   
   %save
   Settings = Data.Settings;

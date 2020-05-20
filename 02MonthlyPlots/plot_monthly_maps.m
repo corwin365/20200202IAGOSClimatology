@@ -13,19 +13,22 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'v2_test.mat';
+Settings.DataFile = 'v3_test.mat';
 
 %variable to plot
-Settings.Var = 'STT_A';
+Settings.Var = 'STT_k';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %For N and Cid this must be 1.
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*9;
+Settings.SmoothSize =[1,1].*1;
 
 %colours
 Settings.NColours = 16;
+
+%layer
+Settings.Layer = 1
 
 %gap filling. maximum number of bins permitted for a fill
 %this happens *before* smoothing
@@ -45,12 +48,12 @@ Data = load(Settings.DataFile);
 [~,yi] = meshgrid(Data.Settings.Lon,Data.Settings.Lat);
 A = 112 .* 112. *cosd(yi);  %km^2 per gridbox
 
-Mpkm = NaN.*Data.Results.N;
+Mpkm = NaN.*Data.Results.N(:,:,:,Settings.Layer);
 for iMonth=1:1:12;
   
   %pull out cluster ids for month
-  Cid = squeeze(Data.Results.Cid(iMonth,:,:));
-  N   = squeeze(Data.Results.N(  iMonth,:,:));
+  Cid = squeeze(Data.Results.Cid(iMonth,:,:,Settings.Layer));
+  N   = squeeze(Data.Results.N(  iMonth,:,:,Settings.Layer));
   if nansum(Cid == 0); continue; end
   
   ThisMonth = NaN.*Cid;
@@ -76,16 +79,17 @@ for iMonth=1:1:12;
 end
 clear yi A iMonth Cid N ThisMonth ThisCid Cluster Area Ntm
 
-%create wind ('W') as quadd(U,V);
-Data.Results.W = quadadd(Data.Results.U,Data.Results.V);
-
-%and latitude derivative of wind
-Data.Results.dW = diff(Data.Results.W,1,3); Data.Results.dW(end,end,end,end+1) = NaN;
-Data.Results.absdW = abs(Data.Results.dW);
-
+% % %create wind ('W') as quadd(U,V);
+% % Data.Results.W = quadadd(Data.Results.U,Data.Results.V);
+% % 
+% % %and latitude derivative of wind
+% % Data.Results.dW = diff(Data.Results.W,1,3); Data.Results.dW(end,end,end,end+1) = NaN;
+% % Data.Results.absdW = abs(Data.Results.dW);
+% % 
 %find desired var and stat
 Data.Results = Data.Results.(Settings.Var);
-Data.Results = Data.Results(:,:,:,Settings.Stat);
+
+Data.Results = Data.Results(:,:,:,Settings.Stat,Settings.Layer);
 
 %special handling
 switch Settings.Var
@@ -97,12 +101,12 @@ end
 
 %colour range
 switch Settings.Var   
-  case {'U','V'};               CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
-  case {'dW'};                  CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
-  case {'Prs','A','W'};     CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
-  case {'k'};   CRange = [200,600];
-  case {'T'};   CRange = [200 250];
-  otherwise;                    CRange = [0,prctile(Data.Results(:),97.5)];
+  case {'U','V'};        CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
+  case {'dW'};           CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
+  case {'Prs','A','W'};  CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);    
+  case {'k'};            CRange = [200,600];
+  case {'T'};            CRange = [200 240];
+  otherwise;             CRange = [0,prctile(Data.Results(:),97.5)];
 end  
 
 %load topography
@@ -150,20 +154,21 @@ clf
 set(gcf,'color','w')
 subplot = @(m,n,p) subtightplot (m, n, p, 0.03, 0.025, [0.025,0.1]);
 
-for iMonth=1:1:12
+for iMonth=[1,2];%1:1:12
   
   %create subplot
-  subplot(3,4,iMonth)
-%   subplot(1,3,iMonth)  
+%   subplot(3,4,iMonth)
+  subplot(1,2,iMonth)  
 % subplot(2,2,iMonth)
 
   %plot settings
   cla
   
   %create map
-%   m_proj('lambert','lon',[-130,130],'lat',[20,77]);
+%   m_proj('lambert','lon',[-180,180],'lat',[20,77]);
+   m_proj('stereographic','lat',90,'long',0,'radius',70);
 %   m_proj('stereographic','lat',90,'long',0,'radius',90);
-  m_proj('lambert','lon',[-140,150],'lat',[5,80]);
+%   m_proj('lambert','lon',[-140,150],'lat',[25,80]);
 
   %get data
   ToPlot = squeeze(Data.Results(iMonth,:,:))';

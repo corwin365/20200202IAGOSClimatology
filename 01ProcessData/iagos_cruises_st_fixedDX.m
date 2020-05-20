@@ -12,7 +12,7 @@ Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
 Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 
 %dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(1994,8,1):1:datenum(2020,12,31);
+Settings.TimeScale = datenum(2012,1,1):1:datenum(2020,12,31);
 
 %cruise identification
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -87,16 +87,15 @@ if ~isodd(Settings.SA.Smooth); Settings.SA.Smooth = Settings.SA.Smooth+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for iDay = 1:1:numel(Settings.TimeScale)
+for iDay = numel(Settings.TimeScale):-1:1
   
   OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v3.mat'];
   
   if exist(OutFile); 
     
-    %check when file was last modified - big change on morning of
-    %2020/18/05
+    %check when file was last modified 
     file = dir(OutFile);
-    if datenum(file.date) > datenum(2020,5,18,8,0,0);     
+    if datenum(file.date) > datenum(2020,5,20,21,30,0);     
       disp([datestr(Settings.TimeScale(iDay)),' already done'])
       continue; 
     end
@@ -132,7 +131,7 @@ for iDay = 1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
-  try
+%   try
       %load file, including unit conversions
       
       %in this step we interpolate to time to identify the cruises. space
@@ -169,10 +168,15 @@ for iDay = 1:1:numel(Settings.TimeScale)
         else              Unique = 1:1:numel(dxS);
         end
          
+        %check all points are non-NaN
+        Good = find(~isnan(dxS(Unique)));
+        Unique = Unique(Good);
+        clear Good
+        
         %check we still have enough data to be useful
         if numel(Unique) < 10; continue; end        
         
-        %check the cruise is long enoigh
+        %check the cruise is long enough
         if max(dxS) < Settings.MinCruiseLength; continue; end
         
         %interpolate all variables to fixed grid
@@ -270,13 +274,13 @@ for iDay = 1:1:numel(Settings.TimeScale)
       end; clear iCruise
       
       
-      %finally, store the data for the day
-      save(OutFile,'Results','Settings')
-   catch; 
-     disp(['Error on ',datestr(Settings.TimeScale(iDay))])
-   end
+
+%    catch; 
+%      disp(['Error on ',datestr(Settings.TimeScale(iDay))])
+%    end
   end; clear iFile
   
-
+  %finally, store the data for the day
+  save(OutFile,'Results','Settings')
 
 end; clear iDay
