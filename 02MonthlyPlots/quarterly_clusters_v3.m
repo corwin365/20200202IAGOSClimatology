@@ -18,13 +18,13 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_st/'];
+Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
 Settings.OutFile = 'v3_q_test.mat';
 
 %gridding - this is the final map gridding, based on where the clusters
 %fall, and does not represent the area averaged over.
-Settings.Lon = -180:.5:180;
-Settings.Lat = -90:.5:90;
+Settings.Lon = -180:1:180;
+Settings.Lat = -90:1:90;
 
 %select pressure ranges
 Settings.PrsRanges = [-100,-25;-25,25;25,100]; %hPa
@@ -33,7 +33,8 @@ Settings.PrsRanges = [-100,-25;-25,25;25,100]; %hPa
 Settings.Vars = {'STT_A','STT_k','U','V','T','TropPres','Prs'}; %'TropPres','Prs' are required for some internal logic to work, but can be anywhere in the order
 
 %number of clusters
-Settings.NClusters = 2000;
+Settings.NClusters   = 1000;
+Settings.NReplicates = 10;
 
 %maximum distance of a point from cluster centre (km)
 Settings.MaxDist = 500;
@@ -43,11 +44,11 @@ Settings.MinPoints = 100;
 
 %bootstrapping parameters
 %first is number of samples per strap, second is number of straps
-Settings.NSamples = 5000;
-Settings.Straps   = 100;
+Settings.NSamples = 10000;
+Settings.Straps   = 500;
 
 %years to use
-Settings.Years = 1994:1:2020;
+Settings.Years = 1994:1:2019;
 
 %statistics to compute for each cluster
 %numberical values are percentiles, text entries are specific stats
@@ -80,62 +81,61 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % get data for this month over all years
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-  
-  %find all days in this quarter over all years
-  Days = [];
-  for  iYear=1:1:numel(Settings.Years)
-    Days = [Days,datenum(Settings.Years(iYear),1,Settings.Quarters{iQuarter})];
-  end
-  
-
-  %create temporary data storage arrays
-  Data = struct();
-  Vars = [Settings.Vars,'Lat','Lon']; %geoloc needed for binning
-  for iVar=1:1:numel(Vars);
-    Data.(Vars{iVar}) = NaN(numel(Days).*3000.*10,1); %rough cap on size, will flex later as needed
-    SoFar.(Vars{iVar}) = 0;
-  end
-  
+    
   %load data
-  textprogressbar(['Loading data for Q',num2str(iQuarter),' ']);
-  for iDay=1:1:numel(Days)
-    if mod(iDay,20) == 1; textprogressbar(iDay./numel(Days).*100); end
+  disp('================================================')
+  disp('================================================')
+  textprogressbar(['Loading Q',num2str(iQuarter),' data '])
+  for iYear=1:1:numel(Settings.Years)
     
-    %find file for this day
-    ThisDayFile = wildcardsearch(Settings.DataDir,['*',num2str(Days(iDay)),'*v3*']);
-    if numel(ThisDayFile) == 0; clear ThisDayFile; continue; end
+    %load the year
+    File = [Settings.DataDir,'/merged_',num2str(Settings.Years(iYear)),'.mat'];
+    if ~exist(File,'file'); clear File; continue; end
+    ThisYearData = load(File);
+    clear File
+
+    %find the days we want
+    ThisYearData.Results.Time(ThisYearData.Results.Time == 0) = NaN;
+    ThisYearData.Results.Day = date2doy(floor(ThisYearData.Results.Time));
+    InTimeRange = find(ismember(ThisYearData.Results.Day,Settings.Quarters{1}));
     
-    %load data
-    ThisDayData = load(ThisDayFile{1});
-    clear ThisDayFile
     
-   
     %discard data outside our geographic region
-    InLatRange = inrange(ThisDayData.Results.Lat,[min(Settings.Lat),max(Settings.Lat)]);
-    InLonRange = inrange(ThisDayData.Results.Lon,[min(Settings.Lon),max(Settings.Lon)]);
+    InLatRange = inrange(ThisYearData.Results.Lat,[min(Settings.Lat),max(Settings.Lat)]);
+    InLonRange = inrange(ThisYearData.Results.Lon,[min(Settings.Lon),max(Settings.Lon)]);
     
     %merge the three criteria
-    Good = intersect(InLatRange,      InLonRange);
+    Good = intersect(InLatRange, InLonRange);
+    Good = intersect(Good,InTimeRange);
+    
     
     %store what we need
-    for iVar=1:1:numel(Vars);
-      V = ThisDayData.Results.(Vars{iVar});
-      D = Data.(Vars{iVar});
-      
-      D(SoFar.(Vars{iVar})+1:SoFar.(Vars{iVar})+numel(Good)) = flatten(V(Good));
-      SoFar.(Vars{iVar}) = SoFar.(Vars{iVar})+numel(Good);
-      
-      Data.(Vars{iVar}) = D;
+    Vars = fieldnames(ThisYearData.Results);
+    if ~exist('Data','var');
+      for iVar=1:1:numel(Vars);
+        V = ThisYearData.Results.(Vars{iVar});
+        Data.(Vars{iVar}) = flatten(V(Good));
+      end      
+    else
+      for iVar=1:1:numel(Vars);
+        V = ThisYearData.Results.(Vars{iVar});
+        D = Data.(Vars{iVar});
+        D = cat(1,D,flatten(V(Good)));
+        Data.(Vars{iVar}) = D;
+      end
     end
 
 
     %and done!
-    clear ThisDayData iVar V InPrsRange Good InLonRange InLatRange
+    clear ThisYearData iVar V InTimeRange Good InLonRange InLatRange D
     
-  end
-  textprogressbar(100);textprogressbar('!')
-  disp(SoFar.(Vars{1}))
-  
+    textprogressbar(iYear./numel(Settings.Years).*100)
+  end; clear iYear
+  textprogressbar('!')
+  disp('================================================')
+  disp('================================================')
+
+
   %my above algorithm leaves some zeros at the end where a longer time
   %series was added to a smaller one. these will all have [lat,lon] = [0,0]. 
   %remove these. We'll also lose any real data at *exactly* [0,0], but this
@@ -182,7 +182,7 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
       Var = Data.(Vars{iVar});
       Data.(Vars{iVar}) = Var(InRange);
     end
-    clear Vars iVar Var dTp InRange
+    clear Vars iVar Var dTP InRange
 
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -198,21 +198,20 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
     
     %we have far too many points to be tractable in computer time
     %but we know that they're very heavily clumped, since aircraft follow
-    %fixed routes. So, let's treat anything in a .2x.2 degree box as
+    %fixed routes. So, let's treat anything in a .25x.25 degree box as
     %'saturated' and as a single point for the cluster generation process
-    Lat = round(Data.Lat./.2);
-    Lon = round(Data.Lon./.2);
-    Combo = Lat + 1000.*Lon;
-    [~,idx] = unique(Combo);
-    clear Combo Lat Lon
+    Lat = round(Data.Lat./.25);
+    Lon = round(Data.Lon./.25);
+    [~,idx] = unique(Lat + 1000.*Lon);
+    clear Lat Lon
     
 
     [~,C] = kmeans([Data.Lat(idx),Data.Lon(idx)], ...
-      Settings.NClusters, ...
-      'Distance','sqeuclidean',...
-      'MaxIter',1000, ...
-      'Replicates',10, ...
-      'Display','off');
+                   Settings.NClusters, ...
+                   'Distance','sqeuclidean',...
+                   'MaxIter',1000, ...
+                   'Replicates',Settings.NReplicates, ...
+                   'Display','off');
      
     %now, find where all the un-clustered points go
     [dx,idx] = pdist2(C,[Data.Lat,Data.Lon],'euclidean','Smallest',1);
@@ -308,6 +307,7 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
         %bootstrapping time. sample the data first.
         r = randi(numel(ThisCluster),Settings.NSamples,Settings.Straps);
         ThisCluster = ThisCluster(r);
+        clear r
         
         for iStat= 1:1:numel(Settings.Stats)
           
@@ -337,8 +337,8 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
           
           %take the median
           ClusterStats(iCluster,iStat) = nanmedian(Straps);
-        end
-      end; clear iCluster V Stat ThisCluster iStat idx iStrap
+        end; 
+      end; clear iCluster V Stat ThisCluster iStat idx iStrap Straps
       
       %put the data onto the map
       R = Results.(Settings.Vars{iVar});
@@ -352,7 +352,7 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
       Results.(Settings.Vars{iVar}) = R;
       
       
-      clear R Ri iCluster ThisCluster ClusterStats
+      clear R Ri iCluster ThisCluster ClusterStats iStat
     end; clear iVar
     
     %also store cluster map
@@ -371,13 +371,14 @@ for iQuarter = 1:1:4 %hopefully this is an uncontentious number of quarters
     end
     R(iQuarter,:,:,iLayer) = Ri;
     Results.N = R;
-    clear R Ri iCluster  CC ThisCluster
+    clear R Ri iCluster CC ThisCluster N
     
     textprogressbar(100);textprogressbar('!')
     
   
   end; clear iLayer
-  clear MASTERDATA
+  clear Data
+
   
   %done. save
   save(Settings.OutFile,'Results','Settings','-v7.3')

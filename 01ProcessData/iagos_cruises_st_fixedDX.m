@@ -87,7 +87,7 @@ if ~isodd(Settings.SA.Smooth); Settings.SA.Smooth = Settings.SA.Smooth+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for iDay =numel(Settings.TimeScale):-1:1
+for iDay =1:1:numel(Settings.TimeScale)
   
   OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v4.mat'];
   
@@ -141,7 +141,7 @@ for iDay =numel(Settings.TimeScale):-1:1
                         'SamplingRate',1./24./60./60.*Settings.dt, ...
                         'CruiseDz',Settings.MaxDz, 'CruiseWindow',Settings.Window, ...
                         'ApplyFlags',true);
-                  
+
       %loop over cruises
       for iCruise = 1:1:size(Data.Cruises,1)
         
@@ -164,21 +164,21 @@ for iDay =numel(Settings.TimeScale):-1:1
         dx2 = 0:Settings.SA.dx:max(dxS);
         
         %check all distance elements are unique (drop any duplicates below)
-        if find(dx == 0); [~,Unique] = unique(dxS,'stable');
-        else              Unique = 1:1:numel(dxS);
+        if find(abs(dx) <= 1e-3); [~,Unique] = unique(dxS,'stable'); %within a metre is as good as zero on these scales, and fixes some edge cases where 0 doesn't work
+        else                          Unique = 1:1:numel(dxS);
         end
-         
+
         %check all distance points are non-NaN
         Good = find(~isnan(dxS(Unique)));
         Unique = Unique(Good);
         clear Good
-        
+
         %check we still have enough data to be useful
         if numel(Unique) < 10; continue; end        
         
         %check the cruise is long enough
         if max(dxS) < Settings.MinCruiseLength; continue; end
-        
+
         %interpolate all variables to fixed grid
         Vars = fieldnames(Data);
         Regular = struct();

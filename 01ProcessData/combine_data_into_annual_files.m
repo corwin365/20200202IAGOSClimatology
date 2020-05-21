@@ -16,7 +16,7 @@ clearvars
 
 AnnSettings.InDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 AnnSettings.OutDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-AnnSettings.Years  = 1994;%2016:-1:2014; 
+AnnSettings.Years  = 2004:2011;%2016:-1:2014; 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,7 +64,7 @@ for iYear=1:1:numel(AnnSettings.Years)
       %if this is the first day, create a results array that is large,
       
       for iVar=1:1:numel(Vars)
-        Results.(Vars{iVar}) = NaN(400,12000); %1000 records of max length 10000
+        Results.(Vars{iVar}) = NaN(400,5000); %400 records of max length 5000
         Count.(  Vars{iVar}) = 0; %number of records so far
       end
       

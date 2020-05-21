@@ -48,9 +48,9 @@ Months = Data.Settings.Grid.Months;
 %% define colours
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Range = [0, max([Calendar.LMS(:);Calendar.TPL(:);Calendar.UTr(:)])];
+Range = [0, prctile([Calendar.LMS(:);Calendar.TPL(:);Calendar.UTr(:)],85)];
 Range = ceil(Range./10000).*10000;
-Settings.NColours = ceil(max(Range)./10000);
+Settings.NColours = ceil(max(Range)./10000).*2;
 
 Levels = linspace(Range(1),Range(2),Settings.NColours);
 
@@ -72,7 +72,7 @@ for iRegion=1:1:4;
   
   %create panel
   subplot(1,4,iRegion)
-  axis([1 13 1994 2021])  
+  axis([1 13 1994 2020])  
   
   %get data
   switch iRegion
@@ -84,7 +84,7 @@ for iRegion=1:1:4;
   
   
   %plot data  
-  for iYear=1:1:numel(Years)
+  for iYear=1:1:numel(Years)-1
     for iMonth = 1:1:numel(Months)
       
       %define the patch limits
@@ -110,7 +110,7 @@ for iRegion=1:1:4;
         PrintN = round(N./1000);%round(log10(N));
         text(iMonth+0.5,Years(iYear)+0.5,num2str(PrintN), ...
              'verticalalignment','middle','horizontalalignment','center', ...
-             'color','k','fontweight','normal','fontsize',11)
+             'color','k','fontweight','normal','fontsize',12)
       end
     end
     
@@ -118,7 +118,7 @@ for iRegion=1:1:4;
     Sigma = round(sum(Cal(iYear,:))./1000);
     text(13.2,Years(iYear)+0.5,num2str(Sigma), ...
          'verticalalignment','middle','horizontalalignment','left', ...
-         'color','k','fontweight','normal','clipping','off','fontsize',12)
+         'color','k','fontweight','normal','clipping','off','fontsize',14)
   end
   
   %sum for each column
@@ -126,7 +126,7 @@ for iRegion=1:1:4;
     Sigma = round(sum(Cal(:,iMonth))./1000);
     if mod(iMonth,2) == 0; Style = '\it'; else Style = '\rm'; end
     
-    text(iMonth+0.43,2021.5,[Style,'{',num2str(Sigma),'}'], ...
+    text(iMonth+0.43,2020.5,[Style,'{',num2str(Sigma),'}'], ...
          'verticalalignment','middle','horizontalalignment','center', ...
          'color','k','fontweight','normal','clipping','off','fontsize',10)
 % %     if iMonth < 12;

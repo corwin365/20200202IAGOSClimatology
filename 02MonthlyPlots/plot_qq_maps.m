@@ -16,19 +16,19 @@ clearvars
 Settings.DataFile = 'v3_q_test.mat';
 
 %variable to plot
-Settings.Var = 'STT_A';
+Settings.Var = 'U';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %For N and Cid this must be 1.
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*9;
+Settings.SmoothSize =[1,1].*1;
 
 %colours
 Settings.NColours = 16;
 
 %layer
-Settings.Layer = 1
+Settings.Layer = 1;
 
 %gap filling. maximum number of bins permitted for a fill
 %this happens *before* smoothing
@@ -125,6 +125,7 @@ switch Data.Settings.Stats{Settings.Stat}
   case 'gini';    StatName = 'Gini Coefficient';
   case 'mean';    StatName = 'Mean';
   case 'stdev';   StatName = 'Standard Deviation';
+  case 'median';  StatName = 'Median';
   otherwise;
     if isnumeric(Data.Settings.Stats{Settings.Stat});
       StatName = [num2str(Data.Settings.Stats{Settings.Stat}),'th %ile'];
@@ -154,12 +155,12 @@ clf
 set(gcf,'color','w')
 subplot = @(m,n,p) subtightplot (m, n, p, 0.03, 0.025, [0.025,0.1]);
 
-for iQuarter=[1,2];%1:1:4
+for iQuarter=1:1:4
   
   %create subplot
 %   subplot(3,4,iQuarter)
-  subplot(1,2,iQuarter)  
-% subplot(2,2,iQuarter)
+%   subplot(1,2,iQuarter)  
+subplot(1,4,iQuarter)
 
   %plot settings
   cla
@@ -239,7 +240,7 @@ for iQuarter=[1,2];%1:1:4
   %tidy
   m_coast('color',[1,1,1].*0.2,'linewi',0.5);
   m_grid('fontsize',8);
-  title(datestr(datenum(2000,iQuarter,1),'mmmm'))
+  title(['Q',num2str(iQuarter)])
   drawnow
   
   

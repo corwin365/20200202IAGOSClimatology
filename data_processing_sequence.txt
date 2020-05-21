@@ -7,9 +7,11 @@ Run programmes in this order to produce the plots from the paper. Most scripts w
 01ProcessGWs/iagos_cruises_st_fixedDX.m
 03TropopauseFinding/find_tropopause_simple.m
 03TropopauseFinding/add_tropopause.m
-01ProcessGWs/merge_iagos_stout.m
+01ProcessGWs/combine_data_into_annual_files.m
 
 Note that several postprocessing/QC steps that should logically be in iagos_cruises_st_fixedDX.m are in find_tropopause_simple.m due to the way the code evolved, and thus these must *both* be run for the dataset to be usable
+
+The below figures can be generated independently in any order provided the above have been done.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%Figure 1 - comparison of T_AC and T_PM

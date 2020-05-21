@@ -13,25 +13,22 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_st'];
+Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual'];
 Settings.OutFile = 'metadata_all.mat';
-
-%time period to include
-Settings.TimeScale = datenum(1994,1,1):1:datenum(2020,12,31);
 
 
 %map data
 Settings.Grid.Lon = -180:5:180;
 Settings.Grid.Lat = -90:5:90;
-Settings.Grid.dTP = -200:5:200; %tropopause relative pressure (hPa)
-Settings.Grid.Prs = 180:20:400;  %absolute pressure (hPa)
+Settings.Grid.dTP = -150:5:150; %tropopause relative pressure (hPa)
+Settings.Grid.Prs = 180:10:360;  %absolute pressure (hPa)
 
 %time data
 Settings.Grid.Years  = 1994:1:2020;
 Settings.Grid.Months = 1:1:12; %yeah yeah
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% prepare save grids
+%% prepare save grids 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %maps
@@ -46,16 +43,43 @@ Results.Time.Prs = zeros(numel(Settings.Grid.Years),numel(Settings.Grid.Months),
 %% get the data and store it
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%make a list of months to loop over
+[yyi,mmi] = meshgrid(Settings.Grid.Years,Settings.Grid.Months);
+yyi = yyi(:); mmi = mmi(:);
 
-for iDay=1:1:numel(Settings.TimeScale)
+AllData.Name = ''; %avoid reloading data unnecessarily
+
+
+for iMonth= 1:1:numel(mmi)
   
-  disp(datestr(Settings.TimeScale(iDay)))
+  if mmi(iMonth) == 1;
+    disp(['Processing ',num2str(yyi(iMonth))])
+  end
   
   %get data
-  File = [Settings.DataDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v3.mat'];
-  if ~exist(File,'file'); clear File; continue; end
-  Data = load(File); clear File
+  File = [Settings.DataDir,'/merged_',num2str(yyi(iMonth)),'.mat'];
+  if strcmp(AllData.Name,File) ~= 1;
+    %load the data
+    if ~exist(File,'file'); clear File; continue; end
+    AllData = load(File); 
+    AllData.Name = File; clear File
+    AllData.Results.Time(AllData.Results.Time == 0) = NaN;
+    AllData.Day = floor(nanmean(AllData.Results.Time,2));
+    [AllData.yy,AllData.mm,~]= datevec(AllData.Day);
+  end
   
+  %pull out just the month we want
+  ThisMonth = find(AllData.yy == yyi(iMonth) & AllData.mm == mmi(iMonth));
+  if numel(ThisMonth) == 0; clear OnThisDay;continue; end
+  Data = AllData;
+  Vars = fieldnames(Data.Results);
+  for iVar=1:1:numel(Vars);
+    V = Data.Results.(Vars{iVar});
+    V = V(ThisMonth,:);
+    Data.Results.(Vars{iVar}) = V;
+  end; clear V iVar Vars;
+
+
   %pull out data we need, and tidy it up
   Good = find(~isnan(Data.Results.STT_A) & Data.Results.STT_A~= 0);
   if numel(Good) == 0; clear Good Data; continue; end
@@ -92,7 +116,6 @@ for iDay=1:1:numel(Settings.TimeScale)
   clear xi yi zi Good Year Month Lon Lat TP Prs Data dTP
 
   
-  if mod(iDay,100) == 0; save(Settings.OutFile,'Settings','Results'); end  
 end; clear iDay
 
-save(Settings.OutFile,'Settings','Results')
+save(Settings.OutFile,'Settings','Results');disp('Saved');

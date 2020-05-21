@@ -90,8 +90,8 @@ for iRegion=1:1:4;
   %overinterpolate the data with nearest neighbour
   %this is so that we can see all the points, as pcolor shades across
   %the diagonal
-  Lon2 = -180:0.5:180;
-  Lat2 = -90:0.5:90;
+  Lon2 = -180:0.1:180;
+  Lat2 = -90:0.1:90;
   [Lon2,Lat2] = meshgrid(Lon2,Lat2);
   ThisMap2 = interp2(Lon,Lat,ThisMap',Lon2,Lat2,'nearest')';
   ThisMap2(ThisMap2 == 0) = NaN;

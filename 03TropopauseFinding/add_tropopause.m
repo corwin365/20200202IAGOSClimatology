@@ -16,8 +16,8 @@ clearvars
 
 TPSettings.DataDir.Trop  = '.';
 TPSettings.DataDir.IAGOS =  [LocalDataDir,'/corwin/IAGOS_st/'];
-% TPSettings.TimeScale  = datenum(1994,8,1):1:datenum(2020,3,31);
-TPSettings.TimeScale  = datenum(2012,12,1):1:datenum(2020,3,31);
+% TPSettings.TimeScale  = datenum(1994,8,1):1:datenum(2019,12,31);
+TPSettings.TimeScale  = [datenum(2002,1,1):1:datenum(2005,12,31),datenum(2009,1,1):1:datenum(2011,12,31)];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -85,6 +85,7 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   %interpolate data
   Data.Results.TropPres = single(TropData.I(Data.Results.Lon,Data.Results.Lat,Data.Results.Time));
   
+  
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%% also do some maintenance and sanity-checking
   %
@@ -95,6 +96,7 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   %code in the logically-correct place. It works fine 
   %here, it's just inelegant.
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
   
   Vars = fieldnames(Data.Results);
   
@@ -160,6 +162,22 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   end
   
   clear Vars
+  
+    
+  %there is some inconsistency in the input data about the units of
+  %pressure, which I did not account for when generating the data. Most of
+  %each flight should be at height levels in the hundreds of hPa, so check
+  %that the mean is of this order or magnitude and scale if not
+  fac = round(log10(nanmean(round(Data.Results.Prs(Data.Results.Prs ~= 0).*100)./100)));
+  if  fac == 2;
+%       disp('PRESSURES FINE')
+  else
+%       disp(['CORRECTING PRESSURES BY FACTOR 10^',num2str(fac)])
+    Data.Results.Prs = Data.Results.Prs./ 10.^(fac-2);
+%     disp(['Mean now ',num2str(round(nanmean(Data.Results.Prs(Data.Results.Prs ~= 0))))])
+  end
+  clear fac
+  
 
   
   %hand check any records longer than 10 000km, as these shouldn't exist,
