@@ -1,7 +1,7 @@
 Run programmes in this order to produce the plots from the paper. Most scripts will require changes of variable path, as they are configured for my system.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%generate basic data
+%%generate basic data used throughout
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 01ProcessGWs/iagos_cruises_st_fixedDX.m
@@ -9,9 +9,19 @@ Run programmes in this order to produce the plots from the paper. Most scripts w
 03TropopauseFinding/add_tropopause.m
 01ProcessGWs/merge_iagos_stout.m
 
+Note that several postprocessing/QC steps that should logically be in iagos_cruises_st_fixedDX.m are in find_tropopause_simple.m due to the way the code evolved, and thus these must *both* be run for the dataset to be usable
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%Figure 1 - comparison of T_AC and T_PM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 04TemperatureComparability/compare_AC_iagos.m
 04TemperatureComparability/plot_comparison.m
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%Figure 2 - time and space coverage of data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+05MetaPlots/metaplots.m
+05MetaPlots/plot1_time.m
+05MetaPlots/plot2_map.m

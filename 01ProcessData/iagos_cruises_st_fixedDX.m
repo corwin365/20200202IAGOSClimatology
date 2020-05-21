@@ -12,7 +12,7 @@ Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
 Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 
 %dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(1994,8,1):1:datenum(2020,12,31);
+Settings.TimeScale = datenum(1994,8,1):1:datenum(2020,2,28);
 
 %cruise identification
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -89,7 +89,7 @@ if ~isodd(Settings.SA.Smooth); Settings.SA.Smooth = Settings.SA.Smooth+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for iDay =numel(Settings.TimeScale):-1:1
   
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v3.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v4.mat'];
   
   if exist(OutFile); 
     
@@ -207,37 +207,34 @@ for iDay =numel(Settings.TimeScale):-1:1
         T = Regular.air_temp_AC;
 
         %smooth out small scales
-        T = smooth(T,Settings.SA.Smooth);       
-        
+        T = smoothdata(T,'gaussian',Settings.SA.Smooth);       
         
         %detrend large scales
-        T = T-smooth(T,Settings.SA.Detrend);
+        T = T-smoothdata(T,'gaussian',Settings.SA.Detrend);
 
         %fill all the gaps for the s-transform (undone after)
         Bad = find(isnan(T));
         T = inpaint_nans(double(T));
-       
-        
+
         %s-transform
-        STT = nph_ndst(T);
+          %scales: only use those in the valid range of wavelengths after filtering
+        LambdaRange = [Settings.SA.Smooth.*Settings.SA.dx.*2, ...
+                       Settings.SA.Detrend.*Settings.SA.dx];
+        Len = numel(T).*Settings.SA.dx;
+        LambdaRange = Len./LambdaRange;
+        Scales = ceil(min(LambdaRange)):1:floor(max(LambdaRange));
+         
+        %do s-transform
+        STT = nph_ndst(T,Scales,Settings.SA.dx); %simple 1dst
+        
         
         %put the gaps back
         STT.In(Bad) = NaN;
         STT.A( Bad) = NaN;
         STT.F1(Bad) = NaN;
         
+        clear LambdaRange Len Scales
         
-% %         clf
-% %         subplot(4,1,1)
-% %         plot(Regular.dxS,T)
-% %         subplot(4,1,2)
-% %         plot(Regular.dxS,STT.A)
-% %         subplot(4,1,3)
-% %         plot(Regular.dxS,1./STT.F1)
-% %         subplot(4,1,4)
-% %         plot(Regular.dxS,Regular.baro_alt_AC)        
-% %         pause
-% %         continue        
          
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %store the outputs
@@ -278,13 +275,13 @@ for iDay =numel(Settings.TimeScale):-1:1
       end; clear iCruise
       
       
-
+% 
 %    catch; 
 %      disp(['Error on ',datestr(Settings.TimeScale(iDay))])
 %    end
   end; clear iFile
   
   %finally, store the data for the day
-  save(OutFile,'Results','Settings')
+  if nansum(Results.Lon(:)) ~= 0;  save(OutFile,'Results','Settings'); end
 
 end; clear iDay

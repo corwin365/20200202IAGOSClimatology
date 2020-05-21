@@ -3,7 +3,7 @@ clearvars
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% merge IAGOS-ST daily fiels into annual files, to reduce overhead in data loading
+%% merge IAGOS-ST daily files into annual files, to reduce overhead in data loading
 %
 %Corwin Wright, c.wright@bath.ac.uk
 %2020/05/20
@@ -16,11 +16,8 @@ clearvars
 
 AnnSettings.InDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 AnnSettings.OutDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-AnnSettings.Years  = 2016:-1:2014; 
-%2012 - 25375
-%2013 - 22172
-%2018 - 43419
-%2017 - 37139
+AnnSettings.Years  = 1994;%2016:-1:2014; 
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% settings
@@ -53,7 +50,7 @@ for iYear=1:1:numel(AnnSettings.Years)
     DayNumber = datenum(AnnSettings.Years(iYear),1,iDay);
     
     %load the file
-    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_v3.mat'];
+    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_v4.mat'];
     clear DayNumber
     if ~exist(FileName,'file'); clear FileName; continue; end
     
