@@ -13,16 +13,16 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'v3_q_test.mat';
+Settings.DataFile = 'allheights_c3000_s10mil_80_500.mat';;%'allheights_c3000_s10mil.mat';%'allheights_c3000_s10mil.mat';
 
 %variable to plot
-Settings.Var = 'N';
+Settings.Var = 'T';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %ignored for N and Cid
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*1;
+Settings.SmoothSize =[1,1].*11;
 
 %colours
 Settings.NColours = 16;
@@ -44,7 +44,7 @@ set(gcf,'color','w')
 subplot = @(m,n,p) subtightplot (m, n, p, 0.04, 0.05, [0.03,0.12]);
   
 
-for LAYER = 1:1:3;
+for LAYER =1;% 1:1:3;
 
   Settings.Layer = LAYER;
   switch LAYER
@@ -67,31 +67,34 @@ for LAYER = 1:1:3;
   
   %special handling
   switch Settings.Var
-    case 'Prs'; Data.Results = Data.Results ./ 100;
-    case 'k';   Data.Results = 1./Data.Results;
+    case 'Prs';   Data.Results = Data.Results ./ 100;
+    case 'STT_k'; Data.Results = 1./Data.Results;
   end
   
   
   
-  %colour range
-  switch Settings.Var
-    case {'U','V'};        CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
-    case {'dW'};           CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
-    case {'Prs','A','W'};  CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);
-    case {'k'};            CRange = [200,600];
-    case {'T'};            CRange = [200 240];
-    otherwise;             CRange = [0,prctile(Data.Results(:),97.5)];
-  end
+% %   %colour range
+% %   switch Settings.Var
+% %     case {'U','V'};        CRange = [-1,1].*prctile(abs(Data.Results(:)),97.5);
+% %     case {'dW'};           CRange = [-1,1].*prctile(abs(Data.Results(:)),66);
+% %     case {'Prs','W'};      CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);
+% %     case {'STT_k'};        CRange = [50,300];
+% %     case {'T'};            CRange = [210 234];
+% %     case {'STT_A'};        CRange = [0,1.5];
+% %     otherwise;             CRange = [0,prctile(Data.Results(:),97.5)];
+% %   end
   
-  %load topography
-  Topo = topo_etc([-180,179],[-90,89]);
+  CRange = prctile(abs(Data.Results(:)),[2.5,97.5]);
   
-  %downsample topography
-  lon2 = -180:0.5:180;
-  lat2 = -90:0.5:90;
-  [xi,yi] = meshgrid(lon2,lat2);
-  Topo.elev = interp2(Topo.lons,Topo.lats,Topo.elev,xi,yi);
-  Topo.lons = xi; Topo.lats = yi; clear xi yi
+% %   %load topography
+% %   Topo = topo_etc([-180,179],[-90,89]);
+% %   
+% %   %downsample topography
+% %   lon2 = -180:0.5:180;
+% %   lat2 = -90:0.5:90;
+% %   [xi,yi] = meshgrid(lon2,lat2);
+% %   Topo.elev = interp2(Topo.lons,Topo.lats,Topo.elev,xi,yi);
+% %   Topo.lons = xi; Topo.lats = yi; clear xi yi
   
   
   %name that stat!
@@ -129,19 +132,21 @@ for LAYER = 1:1:3;
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
 
-  for iQuarter=1:1:4
+  for iQuarter=3%:1:4
     FIGCOUNT = FIGCOUNT+1;
     
     %create subplot
-    %   subplot(3,4,iQuarter)
-    %   subplot(1,2,iQuarter)
-    subplot(3,4,FIGCOUNT)
+%       subplot(3,4,FIGCOUNT)
+%       subplot(2,2,FIGCOUNT)
+%     subplot(1,4,FIGCOUNT)
     
     %plot settings
     cla
     
     %create map
-    m_proj('stereographic','lat',90,'long',0,'radius',70);
+%     m_proj('stereographic','lat',90,'long',0,'radius',70);
+     m_proj('lambert','lon',[-130,170],'lat',[20,80]);
+%      m_proj('robinson','lon',[-130,180],'lat',[-40,90]);
     
     %get data
     ToPlot = squeeze(Data.Results(iQuarter,:,:))';
@@ -183,8 +188,8 @@ for LAYER = 1:1:3;
     ToPlot = smoothn(inpaint_nans(ToPlot),Settings.SmoothSize);
     ToPlot(Bad) = NaN;
     
-    %no colours below table
-    ToPlot(ToPlot < min(CRange)) = min(CRange);
+%     %no colours below table
+%     ToPlot(ToPlot < min(CRange)) = min(CRange);
     
     %colour levels
     CLevels = linspace(min(CRange),max(CRange),Settings.NColours+1);
@@ -204,17 +209,19 @@ for LAYER = 1:1:3;
     % %     otherwise; colormap(cbrew('rdYlBu',4));
     % %   end
     colormap(cbrew('RdYlBu',Settings.NColours));
-    caxis(CRange)
+%     colorbar('southoutside')
+%     caxis(CRange)
+% caxis([0.2 1.5])
     
-    %plot topography
-    m_contour(Topo.lons,Topo.lats,Topo.elev,1:2:7,'color',[1,1,1].*0.4,'linewi',0.5);
+% %     %plot topography
+% %     m_contour(Topo.lons,Topo.lats,Topo.elev,1:2:7,'color',[1,1,1].*0.4,'linewi',0.5);
     
     %tidy
     m_coast('color',[1,1,1].*0.2,'linewi',0.5);
     m_grid('fontsize',14,'ytick',[],'xtick',[-120:60:180]);
 
     %label
-    m_text(-143,5,['(',Letters(FIGCOUNT),')'],'fontsize',19,'clipping','off','fontweight','bold')
+    m_text(-5,90,['(',Letters(FIGCOUNT),')'],'fontsize',30,'clipping','off','fontweight','bold','horizontalalign','center')
     
     drawnow
 

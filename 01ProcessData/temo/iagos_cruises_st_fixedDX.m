@@ -1,4 +1,4 @@
-clearvars -except YEAR
+clearvars
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% settings
@@ -12,7 +12,8 @@ Settings.DataDir = [LocalDataDir,'/IAGOS/Timeseries'];
 Settings.OutDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 
 %dates to loop over. A separate file will be produced for each day.
-Settings.TimeScale = datenum(YEAR,1,1):1:datenum(YEAR,12,31);
+% Settings.TimeScale =datenum(1994,8,1):1:datenum(2020,2,28);
+Settings.TimeScale = [728554,728700,728701,728751,728758,728855,729136,729175,729217,729224,729450,729531,729555,729567,729630,729748,729828,729844,729881,729902,729912,729923,729935,730047,730111,730178,730297,730351,730735,730976,731273,731442,733335,735394,735532,735811,735902,735933,735996,736078,736271,736323,736326,736469,736484,736486,736490,736494,736502,736507,736627,736631,736689,736698,736772,736854,736964,737025,737033,737089,737091,737105,737113,737120,737124,737185,737205,737222,737250];
 
 
 %cruise identification
@@ -37,7 +38,7 @@ Settings.MaxDiscontinuity = 200;% km
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %distance spacing
-Settings.SA.dx = 1; %km
+Settings.SA.dx = 2; %km
 
 %maximum gap size
 Settings.SA.MaxSpaceGap = 40./Settings.SA.dx; %km
@@ -61,13 +62,13 @@ Settings.Vars.Geo.Out = {'Lat','Lon','Time'};
 Settings.Vars.STT.In  = {'IN','A','F1'};
 Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k'};
 
-% % % %s-transform - U
-% % % Settings.Vars.STU.In  = {'IN','A','F1'};
-% % % Settings.Vars.STU.Out = {'Uprime','STU_A','STU_k'};
-% % % 
-% % % %s-transform - V
-% % % Settings.Vars.STV.In  = {'IN','A','F1'};
-% % % Settings.Vars.STV.Out = {'Vprime','STV_A','STV_k'};
+% % %s-transform - U
+% % Settings.Vars.STU.In  = {'IN','A','F1'};
+% % Settings.Vars.STU.Out = {'Uprime','STU_A','STU_k'};
+
+% % %s-transform - V
+% % Settings.Vars.STV.In  = {'IN','A','F1'};
+% % Settings.Vars.STV.Out = {'Vprime','STV_A','STV_k'};
 
 %metadata
 Settings.Vars.Meta.In  = {'air_press_AC','baro_alt_AC','zon_wind_AC','mer_wind_AC','air_temp_AC'};
@@ -112,11 +113,11 @@ for iDay =1:1:numel(Settings.TimeScale)
   
   X = NaN(1,1);%will expand out as needed
   Results = struct();
-  Vars = [Settings.Vars.Geo.Out, ...           
-          Settings.Vars.Meta.Out, ...
-          Settings.Vars.STT.Out];%, ...
-%           Settings.Vars.STU.Out, ...
-%           Settings.Vars.STV.Out,];
+  Vars = [Settings.Vars.Geo.Out, ...
+          Settings.Vars.STT.Out, ...
+...%           Settings.Vars.STU.Out, ...
+...%           Settings.Vars.STV.Out, ...          
+          Settings.Vars.Meta.Out];
   for iVar=1:1:numel(Vars);
     Results.(Vars{iVar}) = X;
   end
@@ -136,7 +137,7 @@ for iDay =1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
-%   try
+  try
       %load file, including unit conversions
       
       %in this step we interpolate to time to identify the cruises. space
@@ -209,54 +210,37 @@ for iDay =1:1:numel(Settings.TimeScale)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         if ~isfield(Regular,'air_temp_AC'); continue; end        
-        
         T = Regular.air_temp_AC;
-% % %         U = Regular.zon_wind_AC;
-% % %         V = Regular.mer_wind_AC;
         
-% % %         %smooth out small scales
-% % %         T = smoothdata(T,'sgolay',Settings.SA.Smooth);       
-% % %         U = smoothdata(U,'sgolay',Settings.SA.Smooth);        
-% % %         V = smoothdata(V,'sgolay',Settings.SA.Smooth);       
+        %smooth out small scales
+        T = smoothdata(T,'gaussian',Settings.SA.Smooth);       
         
         %detrend large scales
         T = T-smoothdata(T,'gaussian',Settings.SA.Detrend);
-% % %         U = U-smoothdata(U,'gaussian',Settings.SA.Detrend);   
-% % %         V = V-smoothdata(V,'gaussian',Settings.SA.Detrend);      
 
         %remove if there are large discontinuities
         Disco = diff(find(~isnan(T))).*Settings.SA.dx;
         if max(Disco) > Settings.MaxDiscontinuity; continue; end
-% % %         Disco = diff(find(~isnan(U))).*Settings.SA.dx;
-% % %         if max(Disco) > Settings.MaxDiscontinuity; continue; end
-% % %         Disco = diff(find(~isnan(V))).*Settings.SA.dx;
-% % %         if max(Disco) > Settings.MaxDiscontinuity; continue; end        
         
         %fill all the gaps for the s-transform (undone after)
         Bad = find(isnan(T));
         T = inpaint_nans(double(T));
-% % %         Bad = find(isnan(U));
-% % %         U = inpaint_nans(double(U));
-% % %         Bad = find(isnan(V));
-% % %         V = inpaint_nans(double(V));        
 
         %s-transform
           %scales: only use those in the valid range of wavelengths after filtering
-        LambdaRange = [5,...%Settings.SA.Smooth.*Settings.SA.dx.*2, ...
-                       2.*Settings.SA.Detrend.*Settings.SA.dx];
+        LambdaRange = [Settings.SA.Smooth.*Settings.SA.dx.*2, ...
+                       Settings.SA.Detrend.*Settings.SA.dx];
         Len = numel(T).*Settings.SA.dx;
-        Lambdas = min(LambdaRange):5:max(LambdaRange);
-        Scales = unique(Len./Lambdas);
-        
+        LambdaRange = Len./LambdaRange;
+        Scales = ceil(min(LambdaRange)):1:floor(max(LambdaRange));
+         
         %do s-transform
         STT = nph_ndst(T,Scales,Settings.SA.dx); %simple 1dst
-% % %         STU = nph_ndst(U,Scales,Settings.SA.dx); %simple 1dst
-% % %         STV = nph_ndst(V,Scales,Settings.SA.dx); %simple 1dst   
                
         %put the gaps back
-        STT.In(Bad) = NaN; %STU.In(Bad) = NaN; STV.In(Bad) = NaN;
-        STT.A( Bad) = NaN; %STU.A( Bad) = NaN; STV.A( Bad) = NaN;
-        STT.F1(Bad) = NaN; %STU.F1(Bad) = NaN; STV.F1(Bad) = NaN;
+        STT.In(Bad) = NaN;
+        STT.A( Bad) = NaN;
+        STT.F1(Bad) = NaN;
         
         clear LambdaRange Len Scales
         
@@ -265,7 +249,7 @@ for iDay =1:1:numel(Settings.TimeScale)
         %store the outputs
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        for VarType = {'Meta','Geo','STT'};%,'STU','STV'};
+        for VarType = {'Meta','Geo','STT'};%,'STU','STV','Meta'}
           
           for iVar=1:1:numel(Settings.Vars.(VarType{1}).Out)
            
@@ -275,8 +259,6 @@ for iDay =1:1:numel(Settings.TimeScale)
             %get data to store
             switch VarType{1};
               case 'STT'; O = STT;
-              case 'STU'; O = STU;
-              case 'STV'; O = STV;
               otherwise;  O = Regular;
             end
             
@@ -303,11 +285,11 @@ for iDay =1:1:numel(Settings.TimeScale)
       
       
 
-%    catch; 
-%      disp(['Error on ',datestr(Settings.TimeScale(iDay))])
-%    end
+   catch; 
+     disp(['Error on ',datestr(Settings.TimeScale(iDay))])
+   end
   end; clear iFile
-
+  
   %finally, store the data for the day
   if nansum(Results.Lon(:)) ~= 0;  save(OutFile,'Results','Settings'); end
 
