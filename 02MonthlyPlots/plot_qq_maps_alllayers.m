@@ -13,19 +13,19 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'allheights_c3000_s10mil_80_500.mat';;%'allheights_c3000_s10mil.mat';%'allheights_c3000_s10mil.mat';
+Settings.DataFile = 'allheights_c3000_s10mil_80_500.mat';%'allheights_c3000_s10mil.mat';%'allheights_c3000_s10mil.mat';
 
 %variable to plot
-Settings.Var = 'T';
+Settings.Var = 'U';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %ignored for N and Cid
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*11;
+Settings.SmoothSize =[1,1].*3;
 
 %colours
-Settings.NColours = 16;
+Settings.NColours = 64;
 
 %gap filling. maximum number of bins permitted for a fill
 %this happens *before* smoothing
@@ -145,12 +145,13 @@ for LAYER =1;% 1:1:3;
     
     %create map
 %     m_proj('stereographic','lat',90,'long',0,'radius',70);
-     m_proj('lambert','lon',[-130,170],'lat',[20,80]);
+     m_proj('lambert','lon',[-130,170],'lat',[0,80]);
 %      m_proj('robinson','lon',[-130,180],'lat',[-40,90]);
     
     %get data
     ToPlot = squeeze(Data.Results(iQuarter,:,:))';
     
+%     ToPlot(ToPlot > 10) = NaN;
     %interpolate over small gaps (only have a 1d routine to do this)
     %first, gaps in longitude
     if Settings.MaxGapSize.Lon ~= 0;
