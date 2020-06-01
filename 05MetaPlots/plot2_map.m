@@ -13,7 +13,7 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.InFile = 'metadata_all.mat';
+Settings.InFile = 'metadata_all_v2.mat';
 
 %height regions (relative to tropopause, defined as acp-17-12495-2017)
 Settings.Region.LMS = [-100,-25];  %lowermost stratosphere

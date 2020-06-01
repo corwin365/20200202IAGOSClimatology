@@ -121,7 +121,48 @@ for iDay=1:1:numel(TPSettings.TimeScale)
       end
 
   end
-  clear a iVar  
+  clear a iVar
+  
+  
+  %some time series crossing the dateline have continuous data, but with a
+  %large lump of NaNs in the middle. Not sure what is causing these, and
+  %the number of flights is so small it's not worth rerunning the whole
+  %dataset to fix. So just find and fix them. But be careful,and do lots of
+  %testing to make sure these are the droids we're looking for.
+  for iCruise = 1:1:size(Data.Results.Lon,1);
+    Cruise.Lon = Data.Results.Lon(iCruise,:);
+    Jump = find(diff(find(~isnan(Cruise.Lon))) > 1);
+
+    if numel(Jump) ~= 1; continue; end %this ony occurs once in such records
+    if abs(Cruise.Lon(Jump)) < 175; continue; end %must be near dateline
+    Next = max(diff(find(~isnan(Cruise.Lon))));%min(find(~isnan(Cruise.Lon(Jump+2:end))));
+    if abs(Cruise.Lon(Jump+Next+1)) < 175; continue; end %must be near dateline  
+
+    %ok, stitch the time series together.
+    Good = [1:Jump,Jump+Next+1:numel(Cruise.Lon)];
+    Order = unique([Good,1:1:numel(Cruise.Lon)],'stable');
+    for iVar = 1:1:numel(Vars);
+      V = Data.Results.(Vars{iVar});
+      V(iCruise,:) = V(iCruise,Order);
+      Data.Results.(Vars{iVar}) = V;
+    end; clear iVar V Good Order
+    
+    %check total length again, and truncate if needed
+    a = max(find(nansum(Data.Results.Lat,1) ~= 0)); %if the longest cruise in the file ends *exactly* on the equator and is going northwards, this will drop the last point. this is unlikely.
+    if a < size(Data.Results.STT_A,2)
+      for iVar = 1:1:numel(Vars);
+        V = Data.Results.(Vars{iVar});
+        V = V(:,1:max(a));
+        Data.Results.(Vars{iVar}) = V;
+      end
+      
+    end
+    clear a iVar
+
+  end
+  
+  clear Vars
+  
     
   %there is some inconsistency in the input data about the units of
   %pressure, which I did not account for when generating the data. Most of

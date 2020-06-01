@@ -14,7 +14,7 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual'];
-Settings.OutFile = 'metadata_all.mat';
+Settings.OutFile = 'metadata_all_v2.mat';
 
 
 %map data

@@ -13,19 +13,19 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.DataFile = 'allheights_c3000_s10mil_80_500.mat';%'allheights_c3000_s10mil.mat';%'allheights_c3000_s10mil.mat';
+Settings.DataFile = 'allheights_c1000_3layer.mat';%'allheights_c3000_s10mil.mat';%'allheights_c3000_s10mil.mat';
 
 %variable to plot
-Settings.Var = 'U';
+Settings.Var = 'STT_A';
 
 %statistic to plot (number in order of input file)
 Settings.Stat = 1; %ignored for N and Cid
 
 %smoothing (bins)
-Settings.SmoothSize =[1,1].*3;
+Settings.SmoothSize =[1,1].*1;
 
 %colours
-Settings.NColours = 64;
+Settings.NColours = 16;
 
 %gap filling. maximum number of bins permitted for a fill
 %this happens *before* smoothing
@@ -44,7 +44,7 @@ set(gcf,'color','w')
 subplot = @(m,n,p) subtightplot (m, n, p, 0.04, 0.05, [0.03,0.12]);
   
 
-for LAYER =1;% 1:1:3;
+for LAYER =1:1:3;
 
   Settings.Layer = LAYER;
   switch LAYER
@@ -132,25 +132,25 @@ for LAYER =1;% 1:1:3;
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
 
-  for iQuarter=3%:1:4
+  for iQuarter=1%:1:4
     FIGCOUNT = FIGCOUNT+1;
     
     %create subplot
 %       subplot(3,4,FIGCOUNT)
 %       subplot(2,2,FIGCOUNT)
-%     subplot(1,4,FIGCOUNT)
+    subplot(1,3,FIGCOUNT)
     
     %plot settings
     cla
     
     %create map
 %     m_proj('stereographic','lat',90,'long',0,'radius',70);
-     m_proj('lambert','lon',[-130,170],'lat',[0,80]);
+     m_proj('lambert','lon',[-130,170],'lat',[20,80]);
 %      m_proj('robinson','lon',[-130,180],'lat',[-40,90]);
     
     %get data
     ToPlot = squeeze(Data.Results(iQuarter,:,:))';
-    
+   
 %     ToPlot(ToPlot > 10) = NaN;
     %interpolate over small gaps (only have a 1d routine to do this)
     %first, gaps in longitude
