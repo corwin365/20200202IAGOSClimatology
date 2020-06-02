@@ -21,8 +21,8 @@ clearvars
 Settings.Vars = {'Prs'};%'STT_A','STT_k','T','U'};
 
 %time period to analyse
-Settings.Years = 2000:1:2010;
-Settings.Days  = 1:1:30; 
+Settings.Years = 1994:1:2020;
+Settings.Days  = [335:1:365,1:1:59]; %DJF 
 
 %final grid size to output the results on
 Settings.Grid.Lon = -180:.5:180;
@@ -30,7 +30,7 @@ Settings.Grid.Lat = -90:.5:90;
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-Settings.OutFile = 'mapdata.mat';
+Settings.OutFile = 'htest.mat';
 
 %statistics to compute
 Settings.Stats = {'mean','stdev','median','gini'};
@@ -40,16 +40,19 @@ Settings.Stats = {'mean','stdev','median','gini'};
 
 %pressure/height bands. Can overlap safely. Order of numbers doesn't matter.
 %'t' for tropopause-relative, 'a' for absolute.
-Settings.PrsBands = {{'t',-100,-25}, ...
+Settings.PrsBands = {{'a',150,200}, ...
+                     {'a',200,250}, ...
+                     {'a',250,300}, ...
+                     {'a',300,350}, ...
                      {'t', -25, 25}, ...
                      {'t',  25,100}, ...
-                     {'a',1000,  0}};  
+                     {'t',-100,-25}};  
 
 %clustering
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %use grid or cluster analysis?
-Settings.Method = 'h'; %g for geographic map, h for hierarchical clusters
+Settings.Method = 'g'; %g for geographic map, h for hierarchical clusters
 
 %geographic param settings only used if in geographic mode
 Settings.ClusterParams.G.Lon = -180:3:180;
@@ -57,7 +60,7 @@ Settings.ClusterParams.G.Lat = -90:3:90;
 
 %hierarchical param settings only used if in hierarchical mode
 Settings.ClusterParams.H.NClusters   = 10000;
-Settings.ClusterParams.H.MinPoints   = 100;
+Settings.ClusterParams.H.MinPoints   = 1;
 Settings.ClusterParams.H.MergeArea   = [0.25,0.25]; %points will be rounded off to the nearest this (lon/lat) and then duplicates removed before defining clusters
 Settings.ClusterParams.H.MaxIter     = 1000;
 Settings.ClusterParams.H.NReplicates = 10;
@@ -67,15 +70,14 @@ Settings.ClusterParams.H.MaxDist     = 500; %km from cluster centre permitted
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %number of samples per iteration
-Settings.BS.NSamples = 1000;
+Settings.BS.NSamples = 5000;
 
 %number of iterations
-Settings.BS.NStraps = 100;
+Settings.BS.NStraps = 500;
 
 %number of rows to pull out of the RNG each time 
 %(no effect on final results, just helps with runtime)
 Settings.BS.NPerPass  = 10;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% preprocessing
