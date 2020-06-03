@@ -13,15 +13,14 @@ clearvars
 
 Settings.DataDir   = [LocalDataDir,'/MDCRS/'];
 Settings.OutDir    = [LocalDataDir,'/IAGOS/AMDAR_as_IAGOS/'];
-Settings.TimeScale = datenum(2020,1,1);
+Settings.TimeScale = datenum(2020,1,1):1:datenum(2020,1,16);
 
 
 Settings.InVars = {'latitude','longitude','altitude','timeObs','temperature','windDir','windSpeed','ID'}; %'ID' is necessary for the programmatic logic
 
 %the data is of dreadful quality. So we need to filter it heavily. 
 %A lot of data is going to be lost, but we'll cope...
-Settings.MinFlightPoints  = 100; %discard short segments of data
-Settings.MaxFlightPoints  = 10000; %clearly more than one flight
+Settings.MinFlightPoints  = 50; %discard short segments of data
 Settings.Maxdt            = 30;% minutes
 Settings.Maxdx            = 200; %km
 Settings.MaxSpeed         = 1000; %km/h
@@ -49,7 +48,7 @@ for iDay=1:1:numel(Settings.TimeScale)
     catch
       continue
     end
-
+    
     %produce a unique identifier for each flight
     %these may span multiple files, so we need to choose something
     %that can be reproduced between files
@@ -79,6 +78,10 @@ for iDay=1:1:numel(Settings.TimeScale)
     
   end; clear iFile FileData yy mm dd Files
   
+  %drop any points where all the science variables are NaN
+  Good = find((~isnan(Store.temperature)+~isnan(Store.windSpeed)) > 0);
+  Store = reduce_struct(Store,Good);
+  clear Good
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% split the data from points into flights
@@ -95,7 +98,6 @@ for iDay=1:1:numel(Settings.TimeScale)
     
     %simple checks - too long or too short?
     if numel(ThisFlight) < Settings.MinFlightPoints;continue; end
-    if numel(ThisFlight) > Settings.MaxFlightPoints; continue; end    
     
     %flight now needs ordering in time
     [~,idx] = sort(Store.timeObs(ThisFlight),'asc');
@@ -103,6 +105,8 @@ for iDay=1:1:numel(Settings.TimeScale)
     
     %any large time discontinuities? This indicates either data gaps or landings.
     if max(diff(Store.timeObs(ThisFlight)))./60 > Settings.Maxdx;continue; end
+    
+    stop
     
     %any large space discontinuities? This indicates either data gaps or landings.
     x1 = [Store.latitude(ThisFlight),Store.longitude(ThisFlight)];

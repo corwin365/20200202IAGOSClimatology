@@ -16,7 +16,7 @@ clearvars
 
 AnnSettings.InDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 AnnSettings.OutDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-AnnSettings.Years  = 2010:1:2019; 
+AnnSettings.Years  = 2020;%2010:1:2019; 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
