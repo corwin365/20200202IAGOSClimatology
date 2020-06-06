@@ -1,5 +1,9 @@
-clearvars
+clearvars -except OUTFILE METHOD DAYS PRSBAND
 
+METHOD = 'g';
+DAYS = 'MAM';
+PRSBAND = 1;
+OUTFILE = 'test.mat';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -14,23 +18,54 @@ clearvars
 %% settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%handle vars fed from outside programme
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+switch DAYS;
+  case 'DJF'; Settings.Days  = [335:1:365,1:1:59];
+  case 'MAM';  Settings.Days  = [60:151];
+  case 'JJA'; Settings.Days  = [152:244];
+  case 'SON'; Settings.Days  = [245:334]; 
+end; clear DAYS
+
+Settings.Method = METHOD; clear METHOD
+
+Settings.OutFile = [OUTFILE,'.mat']; clear OUTFILE;
+
+switch PRSBAND
+  case  1; Settings.PrsBands = {'a',   0,1000};
+  case  2; Settings.PrsBands = {'a', 350, 250};
+  case  3; Settings.PrsBands = {'a', 250, 100};
+  case  4; Settings.PrsBands = {'t', 200, 100};
+  case  5; Settings.PrsBands = {'t', 100,   0};
+  case  6; Settings.PrsBands = {'t', -50,  50};
+  case  7; Settings.PrsBands = {'t',   0,-100};
+  case  8; Settings.PrsBands = {'t',-100,-200};
+  case  9; Settings.PrsBands = {'t',-200,-300};
+  case 10; Settings.PrsBands = {'t',-300,-400};
+end; Settings.PrsBands = {Settings.PrsBands}; clear PRSBAND
+
+
 %general
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%file handling
+Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
+%  Settings.OutFile = 'mapdata_djf_h5000.mat'
+
 %variables to process
-Settings.Vars = {'Prs'};%'STT_A','STT_k','T','U'};
+Settings.Vars = {'STT_A','STT_k','T','U'};
 
 %time period to analyse
 Settings.Years = 1994:1:2020;
-Settings.Days  = [335:1:365,1:1:59]; %DJF 
+%  Settings.Days  = [335:1:365,1:1:59]; %DJF 
+%  Settings.Days  = [60:151]; %MAM 
+%  Settings.Days  = [152:244]; %JJA 
+%  Settings.Days  = [245:334]; %SON
 
 %final grid size to output the results on
-Settings.Grid.Lon = -180:.5:180;
-Settings.Grid.Lat = -90:.5:90;
-
-%file handling
-Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-Settings.OutFile = 'htest.mat';
+Settings.Grid.Lon = -180:1:180;
+Settings.Grid.Lat = -90:1:90;
 
 %statistics to compute
 Settings.Stats = {'mean','stdev','median','gini'};
@@ -40,28 +75,31 @@ Settings.Stats = {'mean','stdev','median','gini'};
 
 %pressure/height bands. Can overlap safely. Order of numbers doesn't matter.
 %'t' for tropopause-relative, 'a' for absolute.
-Settings.PrsBands = {{'a',150,200}, ...
-                     {'a',200,250}, ...
-                     {'a',250,300}, ...
-                     {'a',300,350}, ...
-                     {'t', -25, 25}, ...
-                     {'t',  25,100}, ...
-                     {'t',-100,-25}};  
+%  Settings.PrsBands = {{'a',   0,1000}, ...     %all heights
+%                       {'a', 350, 250}, ...     %bottom half
+%                       {'a', 250, 100}, ...     %top half
+%                       {'t', 200, 100}, ...
+%                       {'t', 100,   0}, ...
+%                       {'t', -50,  50}, ...                     
+%                       {'t',   0,-100}, ...
+%                       {'t',-100,-200}, ...
+%                       {'t',-200,-300}, ...
+%                       {'t',-300,-400}};  
 
 %clustering
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %use grid or cluster analysis?
-Settings.Method = 'g'; %g for geographic map, h for hierarchical clusters
+%  Settings.Method = 'g'; %g for geographic map, h for hierarchical clusters
 
 %geographic param settings only used if in geographic mode
 Settings.ClusterParams.G.Lon = -180:3:180;
 Settings.ClusterParams.G.Lat = -90:3:90;
 
 %hierarchical param settings only used if in hierarchical mode
-Settings.ClusterParams.H.NClusters   = 10000;
-Settings.ClusterParams.H.MinPoints   = 1;
-Settings.ClusterParams.H.MergeArea   = [0.25,0.25]; %points will be rounded off to the nearest this (lon/lat) and then duplicates removed before defining clusters
+Settings.ClusterParams.H.NClusters   = 5000;
+Settings.ClusterParams.H.MinPoints   = 100;
+Settings.ClusterParams.H.MergeArea   = [0.33,0.33]; %points will be rounded off to the nearest this (lon/lat) and then duplicates removed before defining clusters
 Settings.ClusterParams.H.MaxIter     = 1000;
 Settings.ClusterParams.H.NReplicates = 10;
 Settings.ClusterParams.H.MaxDist     = 500; %km from cluster centre permitted
@@ -70,7 +108,7 @@ Settings.ClusterParams.H.MaxDist     = 500; %km from cluster centre permitted
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %number of samples per iteration
-Settings.BS.NSamples = 5000;
+Settings.BS.NSamples = 1000;
 
 %number of iterations
 Settings.BS.NStraps = 500;
@@ -132,6 +170,8 @@ clear iYear YearFile YearData Selected Select
 
 disp('Data loaded')
 
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% identify pressure bands, and loop over them
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,8 +197,10 @@ clear iBand Band InThisBand Baseline
 %% loop over bands
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+
 for iBand = 1:1:numel(Settings.PrsBands)
-  
+
   disp(['Processing pressure band ',num2str(iBand),' of ',num2str(numel(Settings.PrsBands))])
   
   %select data in band
@@ -330,6 +372,10 @@ for iBand = 1:1:numel(Settings.PrsBands)
   
   %done!
   clear Data
+  
+  save(Settings.OutFile,'Results','Settings')
+  disp('--> Saved')
+
 end;
 clear Store Bands iBand
 

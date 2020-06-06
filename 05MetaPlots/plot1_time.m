@@ -15,11 +15,11 @@ clearvars
 %file handling
 Settings.InFile = 'metadata_all_v2.mat';
 
-%height regions (relative to tropopause, defined as acp-17-12495-2017)
-Settings.Region.LMS = [-100,-25];  %lowermost stratosphere
-Settings.Region.TPL = [-25,25];   %tropopause layer
-Settings.Region.UTr = [25,100];   %upper troposphere
-Settings.Region.All = [-999,999];   %all
+%height regions (absolute pressure)
+Settings.Region.Bot = [1000,225];
+Settings.Region.Mid = [225,205];
+Settings.Region.Top = [205,0];
+Settings.Region.All = [1000,0];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,17 +30,18 @@ Settings.Region.All = [-999,999];   %all
 Data = load(Settings.InFile);
 
 %define regions
-idx.LMS = find(Data.Settings.Grid.dTP >= min(Settings.Region.LMS) & Data.Settings.Grid.dTP <= max(Settings.Region.LMS));
-idx.TPL = find(Data.Settings.Grid.dTP >= min(Settings.Region.TPL) & Data.Settings.Grid.dTP <= max(Settings.Region.TPL));
-idx.UTr = find(Data.Settings.Grid.dTP >= min(Settings.Region.UTr) & Data.Settings.Grid.dTP <= max(Settings.Region.UTr));
-idx.All = find(Data.Settings.Grid.dTP >= min(Settings.Region.All) & Data.Settings.Grid.dTP <= max(Settings.Region.All));
+idx.Bot = find(Data.Settings.Grid.Prs >= min(Settings.Region.Bot) & Data.Settings.Grid.Prs <= max(Settings.Region.Bot));
+idx.Mid = find(Data.Settings.Grid.Prs >= min(Settings.Region.Mid) & Data.Settings.Grid.Prs <= max(Settings.Region.Mid));
+idx.Top = find(Data.Settings.Grid.Prs >= min(Settings.Region.Top) & Data.Settings.Grid.Prs <= max(Settings.Region.Top));
+idx.All = find(Data.Settings.Grid.Prs >= min(Settings.Region.All) & Data.Settings.Grid.Prs <= max(Settings.Region.All));
 
 %hence, make three calendars
-Calendar.LMS = nansum(Data.Results.Time.dTP(:,:,idx.LMS),3);
-Calendar.TPL = nansum(Data.Results.Time.dTP(:,:,idx.TPL),3);
-Calendar.UTr = nansum(Data.Results.Time.dTP(:,:,idx.UTr),3);
-Calendar.All = nansum(Data.Results.Time.dTP(:,:,idx.All),3);
-
+Calendar.Bot = nansum(Data.Results.Time.Prs(:,:,idx.Bot),3);
+Calendar.Mid = nansum(Data.Results.Time.Prs(:,:,idx.Mid),3);
+Calendar.Top = nansum(Data.Results.Time.Prs(:,:,idx.Top),3);
+Calendar.All = nansum(Data.Results.Time.Prs(:,:,idx.All),3);
+sum(Calendar.All(:))
+stop
 Years  = Data.Settings.Grid.Years;
 Months = Data.Settings.Grid.Months;
 
@@ -48,7 +49,7 @@ Months = Data.Settings.Grid.Months;
 %% define colours
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Range = [0, prctile([Calendar.LMS(:);Calendar.TPL(:);Calendar.UTr(:)],85)];
+Range = [0, prctile([Calendar.Bot(:);Calendar.Mid(:);Calendar.Top(:)],85)];
 Range = ceil(Range./10000).*10000;
 Settings.NColours = ceil(max(Range)./10000).*2;
 
@@ -76,9 +77,9 @@ for iRegion=1:1:4;
   
   %get data
   switch iRegion
-    case 1; Cal = Calendar.UTr; title('(a) Upper Troposphere');
-    case 2; Cal = Calendar.TPL; title('(b) Tropopause Layer');
-    case 3; Cal = Calendar.LMS; title('(c) Lowermost Stratosphere');      
+    case 1; Cal = Calendar.Bot; title('(a) Below 225 hPa');
+    case 2; Cal = Calendar.Mid; title('(b) 225 hPa - 205 hPa');
+    case 3; Cal = Calendar.Top; title('(c) Above 205 hPa');      
     case 4; Cal = Calendar.All; title('(d) All Data');       
   end
   

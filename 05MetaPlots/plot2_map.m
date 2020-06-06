@@ -15,11 +15,11 @@ clearvars
 %file handling
 Settings.InFile = 'metadata_all_v2.mat';
 
-%height regions (relative to tropopause, defined as acp-17-12495-2017)
-Settings.Region.LMS = [-100,-25];  %lowermost stratosphere
-Settings.Region.TPL = [-25,25];   %tropopause layer
-Settings.Region.UTr = [25,100];   %upper troposphere
-Settings.Region.All = [-999,999]; %all data
+%height regions (absolute pressure)
+Settings.Region.Bot = [1000,225];
+Settings.Region.Mid = [225,205];
+Settings.Region.Top = [205,0];
+Settings.Region.All = [1000,0];
 
 %number of colours
 Settings.NColours = 32;
@@ -31,25 +31,27 @@ Settings.NColours = 32;
 %load data
 Data = load(Settings.InFile);
 
+
 %define regions
-idx.LMS = find(Data.Settings.Grid.dTP >= min(Settings.Region.LMS) & Data.Settings.Grid.dTP <= max(Settings.Region.LMS));
-idx.TPL = find(Data.Settings.Grid.dTP >= min(Settings.Region.TPL) & Data.Settings.Grid.dTP <= max(Settings.Region.TPL));
-idx.UTr = find(Data.Settings.Grid.dTP >= min(Settings.Region.UTr) & Data.Settings.Grid.dTP <= max(Settings.Region.UTr));
-idx.All = find(Data.Settings.Grid.dTP >= min(Settings.Region.All) & Data.Settings.Grid.dTP <= max(Settings.Region.All));
+idx.Bot = find(Data.Settings.Grid.Prs >= min(Settings.Region.Bot) & Data.Settings.Grid.Prs <= max(Settings.Region.Bot));
+idx.Mid = find(Data.Settings.Grid.Prs >= min(Settings.Region.Mid) & Data.Settings.Grid.Prs <= max(Settings.Region.Mid));
+idx.Top = find(Data.Settings.Grid.Prs >= min(Settings.Region.Top) & Data.Settings.Grid.Prs <= max(Settings.Region.Top));
+idx.All = find(Data.Settings.Grid.Prs >= min(Settings.Region.All) & Data.Settings.Grid.Prs <= max(Settings.Region.All));
 
 %hence, make three calendars
-Map.LMS = nansum(Data.Results.Map.dTP(:,:,idx.LMS),3);
-Map.TPL = nansum(Data.Results.Map.dTP(:,:,idx.TPL),3);
-Map.UTr = nansum(Data.Results.Map.dTP(:,:,idx.UTr),3);
-Map.All = nansum(Data.Results.Map.dTP(:,:,idx.All),3);
+Map.Bot = nansum(Data.Results.Map.Prs(:,:,idx.Bot),3);
+Map.Mid = nansum(Data.Results.Map.Prs(:,:,idx.Mid),3);
+Map.Top = nansum(Data.Results.Map.Prs(:,:,idx.Top),3);
+Map.All = nansum(Data.Results.Map.Prs(:,:,idx.All),3);
+
 
 Lon = Data.Settings.Grid.Lon;
 Lat = Data.Settings.Grid.Lat;
 
 %divide maps by total
-Map.LMS = Map.LMS ./ nansum(Map.LMS(:));
-Map.TPL = Map.TPL ./ nansum(Map.TPL(:));
-Map.UTr = Map.UTr ./ nansum(Map.UTr(:));
+Map.Bot = Map.Bot ./ nansum(Map.Bot(:));
+Map.Mid = Map.Mid ./ nansum(Map.Mid(:));
+Map.Top = Map.Top ./ nansum(Map.Top(:));
 Map.All = Map.All ./ nansum(Map.All(:));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -78,9 +80,9 @@ for iRegion=1:1:4;
   
   %get data
   switch iRegion
-    case 1; ThisMap = Map.UTr; title('(e) Upper Troposphere');
-    case 2; ThisMap = Map.TPL; title('(f) Tropopause Layer');
-    case 3; ThisMap = Map.LMS; title('(g) Lowermost Stratosphere');      
+    case 1; ThisMap = Map.Bot; title('(e) Below 225 hPa');
+    case 2; ThisMap = Map.Mid; title('(f) 225 hPa - 205 hPa');
+    case 3; ThisMap = Map.Top; title('(g) Above 205 hPa');      
     case 4; ThisMap = Map.All; title('(h) All Data');          
   end
   

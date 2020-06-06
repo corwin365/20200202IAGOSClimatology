@@ -18,8 +18,9 @@ Settings.TimeScale   = datenum(1994,8,1):1:datenum(2019,12,31);
 Settings.AbsPrsScale = 165:10:350;
 Settings.RelPrsScale = -425:500:300; %i.e. keep the code but run as fast as possible
 Settings.LatScale    = -40:4:80;
+Settings.LonScale    = -180:4:180; %used for weighting, not in final product
 Settings.Vars        = {'U','STT_A'};%,'STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
-Settings.OutFile     = 'zm_final.mat';
+Settings.OutFile     = 'zm_final_lonweighted.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -72,21 +73,25 @@ for iDay=1:1:numel(Settings.TimeScale)
   
   %get metadata needed
   Lat = ThisDay.Lat;
+  Lon = ThisDay.Lon;
   AbsPrs = ThisDay.Prs;
   RelPrs = ThisDay.Prs - ThisDay.TropPres;
   
   %do binning
   for iVar=1:1:numel(Settings.Vars)
 
-    [xi,yi] = meshgrid(Settings.LatScale,Settings.AbsPrsScale);
-    Results.Abs( iVar,iDay,:,:) = bin2mat(Lat,AbsPrs,       ThisDay.(Settings.Vars{iVar}), xi,yi,'@nanmean')';
-    Results.AbsN(iVar,iDay,:,:) = bin2mat(Lat,AbsPrs,~isnan(ThisDay.(Settings.Vars{iVar})),xi,yi,'@nansum')';
+    [xi,yi,zi] = meshgrid(Settings.LonScale,Settings.LatScale,Settings.AbsPrsScale);
+    Results.Abs( iVar,iDay,:,:) = squeeze(nanmean(bin2matN(3,Lon,Lat,AbsPrs,ThisDay.(Settings.Vars{iVar}), xi,yi,zi,'@nanmean'),2));
 
-    [xi,yi] = meshgrid(Settings.LatScale,Settings.RelPrsScale);
-    Results.Rel( iVar,iDay,:,:) = bin2mat(Lat,RelPrs,       ThisDay.(Settings.Vars{iVar}), xi,yi,'@nanmean')';
-    Results.RelN(iVar,iDay,:,:) = bin2mat(Lat,RelPrs,~isnan(ThisDay.(Settings.Vars{iVar})),xi,yi,'@nansum')';
+    [yi,zi] = meshgrid(Settings.LatScale,Settings.AbsPrsScale);
+    Results.AbsN(iVar,iDay,:,:) = bin2mat(Lat,AbsPrs,~isnan(ThisDay.(Settings.Vars{iVar})),yi,zi,'@nansum')';
 
+    [xi,yi,zi] = meshgrid(Settings.LonScale,Settings.LatScale,Settings.RelPrsScale);
+    Results.FRel( iVar,iDay,:,:) = squeeze(nanmean(bin2matN(3,Lon,Lat,RelPrs,ThisDay.(Settings.Vars{iVar}), xi,yi,zi,'@nanmean'),2));    
     
+    [yi,zi] = meshgrid(Settings.LatScale,Settings.RelPrsScale);    
+    Results.RelN(iVar,iDay,:,:) = bin2mat(Lat,RelPrs,~isnan(ThisDay.(Settings.Vars{iVar})),yi,zi,'@nansum')';
+
    if iVar == 1;
      Results.TP(iDay,:) = bin2matN(1,Lat,ThisDay.TropPres,Settings.LatScale,'@nanmean');
    end

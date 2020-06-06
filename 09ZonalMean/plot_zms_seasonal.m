@@ -16,12 +16,12 @@ clearvars
 
 Settings.InFile = 'zm_longrange.mat';
 
-Settings.Variable = 1; %in order of input file
+Settings.Variable = 3; %in order of input file
 Settings.Mode = 1; %1 for results, 2 for number of points
 
 Settings.Seasons = [12,1,2;3,4,5;6,7,8;9,10,11];
 
-Settings.SmoothSize = [1,1].*1; %in raw data bins
+Settings.SmoothSize = [1,1].*3; %in raw data bins
 Settings.InterpFactor = [5,5]; 
     
       
@@ -97,7 +97,10 @@ end
 if Settings.Mode == 2; Var = 'log(Number of points)'; end
 
 %colour range
-if     Settings.Mode == 1; ColourRange = prctile([Plot.Abs(:);Plot.Rel(:)],[5,95]);
+if     Settings.Mode == 1; 
+  if strcmp(Var,'U') == 1; ColourRange = [-1,1].*prctile(abs([Plot.Abs(:);Plot.Rel(:)]),[95]);
+  else;                    ColourRange = prctile([Plot.Abs(:);Plot.Rel(:)],[5,95]);
+  end
 elseif Settings.Mode == 2; ColourRange = [0,max([Plot.Abs(:);Plot.Rel(:)])];
 end
 
@@ -155,7 +158,7 @@ for iBasis=1:1:2;
     
     if iBasis == 1;
       %plot tropause
-      plot(Lat,Plot.TP(iQuarter,:),'k:','linewi',2)
+      plot(Lat,Plot.TP(iQuarter,:),'k-','linewi',2)
     end
 
     %tidy
@@ -171,13 +174,13 @@ for iBasis=1:1:2;
     if iBasis == 1;
       for y = 300:-50:-200; plot([-100,100],[1,1].*y,'--','color',[1,1,1].*0.6); end
       for x = -80:20:80;   plot([1,1].*x,[1e-5,500],'--','color',[1,1,1].*0.6); end
-      plot([0,0],[1e-5,500],'k-','linewi',1)
+      plot([0,0],[1e-5,500],'k--','linewi',1)
     else
 
       for y = -400:50:250; plot([-100,100],[1,1].*y,'--','color',[1,1,1].*0.6); end      
       for x = -80:20:80;  plot([1,1].*x,[-500,500],'--','color',[1,1,1].*0.6); end
-      plot([0,0],[-500,500],'k-','linewi',1)
-      plot([-100,100],[0,0],'k:','linewi',2)
+      plot([0,0],[-500,500],'k--','linewi',1)
+      plot([-100,100],[0,0],'k-','linewi',2)
     end
     
     
@@ -202,6 +205,8 @@ for iBasis=1:1:2;
         case 4; title('SON','fontsize',20);
       end
     end
+    
+    if iBasis == 2; ylim([-200 200]); end
           
     drawnow
     

@@ -21,7 +21,7 @@ Settings.OutFile = 'metadata_all_v2.mat';
 Settings.Grid.Lon = -180:5:180;
 Settings.Grid.Lat = -90:5:90;
 Settings.Grid.dTP = -150:5:150; %tropopause relative pressure (hPa)
-Settings.Grid.Prs = 180:10:360;  %absolute pressure (hPa)
+Settings.Grid.Prs = 150:10:350;  %absolute pressure (hPa)
 
 %time data
 Settings.Grid.Years  = 1994:1:2020;
