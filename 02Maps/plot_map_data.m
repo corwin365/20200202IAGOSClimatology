@@ -1,4 +1,4 @@
-clearvars -except SMOOTHSIZE
+clearvars
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -17,14 +17,14 @@ clearvars -except SMOOTHSIZE
 Settings.Mode = 'h';
 
 %smoothing of final plot
-Settings.SmoothSize = [1,1].*1;%.*SMOOTHSIZE;
+Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'Cid'};%'U','T'};
+Settings.Vars    = {'U','STT_A','STT_k';};
   %%indices in the order specified in file Settings struct 
-Settings.Layers = 1;%7%[7,5]; 
-Settings.Stats  = 3;%,4];
+Settings.Layers = 23;
+Settings.Stats  = 2;
 
 Settings.Log = 0;
 
@@ -90,8 +90,8 @@ disp('Data loaded')
 %prepare figure
 clf
 set(gcf,'color','w')
-subplot = @(m,n,p) subtightplot (m, n, p, [0.05, 0.02], [0.05 0.05], [0.05 0.05]);
-
+subplot = @(m,n,p) subtightplot (m, n, p, [0.05, 0.02], [0.05 0.05], [0.05 0.1]);
+Letters = 'abcdefghijklmnopqrstuvwxyz';
 
 %generate plotting combinations we want to produce
 Combos = {};
@@ -126,52 +126,67 @@ for iCombo = 1:1:numel(Combos)
     
     %generate panel and map
     k = k+1;
-    subplot(2,2,k);
-%     subplot(numel(Combos),4,k)
-    m_proj('lambert','lat',[20,85],'lon',[-130 140])
+%     subplot(2,2,k);
+    hp = subplot(numel(Combos),4,k);
+    m_proj('lambert','lat',[20,80],'lon',[-130 140])
 %     m_proj('lambert','lat',[30,80],'lon',[-80 40])
     
-    %overinterpolate the data so that pcolor/contourf don't hide very thin tendrils
-    %using nearest-neighbour interpolant, so no new data introduced
-    if ~strcmp(Combo{1},'Cid'); 
-      x = Meta.Grid.Lon;
-      y = Meta.Grid.Lat;
-      [xi,yi] = meshgrid(linspace(min(x),max(x),numel(x).*3), ...
-                         linspace(min(y),max(y),numel(y).*3));
-      ToPlot = interp2(x,y,squeeze(ComboData(:,:,iQuarter))',xi,yi);
-      
-      %smooth
-      Bad = find(isnan(ToPlot)); ToPlot = inpaint_nans(ToPlot);
-      ToPlot = smoothn(ToPlot,Settings.SmoothSize.*5,'gauss',Settings.SmoothSize.*3);
-      ToPlot(Bad) = NaN;
-    else
-      xi = Meta.Grid.Lon; yi = Meta.Grid.Lat; ToPlot = squeeze(ComboData(:,:,iQuarter))'; 
+    %black fill for areas with no data
+    for Lon = -180:1:170
+      m_patch([0 10 10 0 0]+Lon, ...
+              [-90 -90 90 90 -90],....
+              [1,1,1].*0.6,'edgecolor','none')
+      hold on
+    end
+
+
+
+    %get data
+    xi = Meta.Grid.Lon; yi = Meta.Grid.Lat; ToPlot = squeeze(ComboData(:,:,iQuarter))';
+    
+    %smooth data
+    Bad = find(isnan(ToPlot)); ToPlot = inpaint_nans(ToPlot);
+    ToPlot = smoothn(ToPlot,Settings.SmoothSize.*3,'gauss',Settings.SmoothSize./2.355);
+    ToPlot(Bad) = NaN;
+
+
+    %choose colours
+    switch Combo{1}
+      case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,240];  Units = 'Temperature [K]';
+      case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-40,40];   Units = 'Zonal Wind [K]';
+      case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
+      case 'STT_k'; colormap(hp,cbrew('PRGn',16));           ColourRange = [0 150]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
     end
     
-
     
     
     %plot data
     m_pcolor(xi,yi,ToPlot)
     
+        
     
+
     
     %tidy up map
     caxis(ColourRange)
-    colormap(cbrew('Accent',10))
-    
-%     colorbar('southoutside')
-%     colormap(cbrew('Greens',16));
-%     redyellowblue16
     m_coast('color','k');
     m_grid('fontsize',10);
-    
+
+    %label
+    m_text(0,90,['(',Letters(k),')'],'fontsize',22,'clipping','off', ...
+           'horizontalalignment','center','fontweight','bold')
     
     %done!
     drawnow
   end
   
   
+  %colour table
+  x = [0.92 0.02];
+  y = [-1,1].*.1 + (1./(numel(Combos)+1))*((numel(Combos)+1)-iCombo);
+  cb = colorbar('position',[x(1),y(1),x(2),y(2)-y(1)]);
+  cb.Label.String = Units;
+  drawnow
   
   
 end
