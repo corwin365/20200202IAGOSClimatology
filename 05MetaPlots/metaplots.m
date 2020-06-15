@@ -81,7 +81,7 @@ for iMonth= 1:1:numel(mmi)
 
   
   %pull out data we need, and tidy it up
-  Good = find(~isnan(Data.Results.STT_A) & Data.Results.STT_A~= 0 & 1./Data.Results.STT_k > 80);
+  Good = find(~isnan(Data.Results.STT_A) & Data.Results.STT_A~= 0 & 1./Data.Results.STT_k > 25);
   if numel(Good) == 0; clear Good Data; continue; end
   
   [Year,Month,~] = datevec(Data.Results.Time(Good));  

@@ -13,8 +13,8 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Settings.DataDir    = [LocalDataDir ,'/corwin/IAGOS_annual/'];
-% Settings.TimeScale  = datenum(1994,8,1):1:datenum(2019,12,31);
-Settings.TimeScale  = datenum(2005,1,1):1:datenum(2005,12,31);
+Settings.TimeScale  = datenum(1994,8,1):1:datenum(2019,12,31);
+% Settings.TimeScale  = datenum(2006,1,1):1:datenum(2006,12,31);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,7 +29,7 @@ for Time = min(Settings.TimeScale):1:max(Settings.TimeScale);
   if Store.OldYear ~= yy
 
     %load data
-    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_vTEST.mat'];
+    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_v7.mat'];
     if ~exist(FileName,'file'); continue; end
     File = load(FileName); File = File.Results;
     
@@ -40,7 +40,8 @@ for Time = min(Settings.TimeScale):1:max(Settings.TimeScale);
     Good = find(~isnan(File.Lat + File.Lon + File.STT_A));
 
     %require wavelength greater than 80km
-    Good = intersect(Good,find(1./File.STT_k > 80));
+    Good = intersect(Good,find(1./File.STT_k > 25));
+    Good = intersect(Good,find(1./File.STT_k > 25));    
     
     %glue to our arrays
     if ~isfield(Store,'Lat'); Store = reduce_struct(File,Good);
@@ -126,7 +127,7 @@ title('(e) Amplitudes');
 
 subplot(2,3,6)
 
-x = logspace(log10(70),log10(3000),100);
+x = logspace(log10(20),log10(3000),100);
 h = histogram(Store.Lambda(Store.Lat < 50),x);
 % plot(x,y)
 

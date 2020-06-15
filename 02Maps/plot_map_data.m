@@ -1,4 +1,4 @@
-clearvars
+% clearvars
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -19,19 +19,19 @@ Settings.Mode = 'h';
 %smoothing of final plot
 Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 
-% % %plot rows. one row for each combination of the below
-% %   %%strings, as a cell struct
-% % Settings.Vars    = {'STT_A','STT_k';};
-% %   %%indices in the order specified in file Settings struct 
-% % Settings.Layers = 23;
-% % Settings.Stats  = [3,4];
-
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'STT_A';};
+Settings.Vars    = {'STT_A','STT_k';};
   %%indices in the order specified in file Settings struct 
-Settings.Layers = 22:23;
-Settings.Stats  = [1];
+% Settings.Layers = 21;
+Settings.Stats  = [3,4];
+
+% % %plot rows. one row for each combination of the below
+% %   %%strings, as a cell struct
+% % Settings.Vars    = {'U';};
+% %   %%indices in the order specified in file Settings struct 
+% % Settings.Layers = 21:23;
+% % Settings.Stats  = [3];
 
 Settings.Log = 0;
 
@@ -166,11 +166,11 @@ for iCombo = 1:1:numel(Combos)
           case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,240];  Units = 'Temperature [K]';
           case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-50,50];   Units = 'Zonal Wind [K]';
           case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
-          case 'STT_k'; colormap(hp,cbrew('Blues',16));           ColourRange = [0 1000]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+          case 'STT_k'; colormap(hp,cbrew('Blues',16));           ColourRange = [100 700]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
         end
       case 4; %only computed upstream for STT_A
          colormap(hp,cbrew('Reds',16)); 
-         ColourRange = [0.15 0.45]; 
+         ColourRange = [0.2 0.4]; 
          Units = 'Gini Coefficient';
     end
     

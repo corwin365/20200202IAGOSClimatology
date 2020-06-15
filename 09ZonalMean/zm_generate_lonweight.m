@@ -54,7 +54,7 @@ for iDay=1:1:numel(Settings.TimeScale)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   [yy,~,~] = datevec(Settings.TimeScale(iDay));
-  File = [Settings.DataDir,'/merged_',num2str(yy),'.mat'];
+  File = [Settings.DataDir,'/merged_',num2str(yy),'_v7.mat'];
   if ~strcmp(File,Store.Name)
     Store = load(File); Store = Store.Results;
     Store.Name = File;

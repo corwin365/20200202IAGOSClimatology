@@ -27,7 +27,7 @@ Settings.MaxDz  = 100;%m
 Settings.Window = 15*60./Settings.dt;  %fifteen minutes
 
 %minimum length (km) of cruise
-Settings.MinCruiseLength = 100000;
+Settings.MinCruiseLength = 1000;
 
 %maximum size of any discontinuities before complete discard of dataset
 Settings.MaxDiscontinuity = 200;% km
@@ -87,7 +87,7 @@ if ~isodd(Settings.SA.Detrend); Settings.SA.Detrend = Settings.SA.Detrend+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for iDay =numel(Settings.TimeScale):-1:1
   
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_vTEST.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v7.mat'];
   
  if exist(OutFile); 
    %check when file was last modified 
