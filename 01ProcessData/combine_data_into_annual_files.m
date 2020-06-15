@@ -1,4 +1,4 @@
-clearvars
+clearvars -except YEAR
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -16,7 +16,7 @@ clearvars
 
 AnnSettings.InDir  = [LocalDataDir,'/corwin/IAGOS_st/'];
 AnnSettings.OutDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-AnnSettings.Years  = 2020;%2010:1:2019; 
+AnnSettings.Years  = YEAR;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,12 +50,14 @@ for iYear=1:1:numel(AnnSettings.Years)
     DayNumber = datenum(AnnSettings.Years(iYear),1,iDay);
     
     %load the file
-    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_v4.mat'];
+    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_vTEST.mat'];
     clear DayNumber
     if ~exist(FileName,'file'); clear FileName; continue; end
     
     DataThisYear = 1;
     Data = load(FileName);
+    
+    Data.Results = rmfield(Data.Results,{'Uprime','STU_A','STU_k','Vprime','STV_A','STV_k'});
     
     %get list of variables
     Vars = fieldnames(Data.Results);
@@ -64,7 +66,7 @@ for iYear=1:1:numel(AnnSettings.Years)
       %if this is the first day, create a results array that is large,
       
       for iVar=1:1:numel(Vars)
-        Results.(Vars{iVar}) = NaN(400,5000); %400 records of max length 5000
+        Results.(Vars{iVar}) = NaN(400,10000); %400 records of max length 10000
         Count.(  Vars{iVar}) = 0; %number of records so far
       end
       
@@ -120,7 +122,7 @@ for iYear=1:1:numel(AnnSettings.Years)
 
   
   %save the big annual pile of data
-  save([AnnSettings.OutDir,'/merged_',num2str(AnnSettings.Years(iYear)),'.mat'], ...
+  save([AnnSettings.OutDir,'/merged_',num2str(AnnSettings.Years(iYear)),'_vTEST.mat'], ...
        'Results','Settings');
 
      

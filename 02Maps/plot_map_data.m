@@ -19,12 +19,19 @@ Settings.Mode = 'h';
 %smoothing of final plot
 Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 
+% % %plot rows. one row for each combination of the below
+% %   %%strings, as a cell struct
+% % Settings.Vars    = {'STT_A','STT_k';};
+% %   %%indices in the order specified in file Settings struct 
+% % Settings.Layers = 23;
+% % Settings.Stats  = [3,4];
+
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'U','STT_A','STT_k';};
+Settings.Vars    = {'STT_A';};
   %%indices in the order specified in file Settings struct 
-Settings.Layers = 23;
-Settings.Stats  = 2;
+Settings.Layers = 22:23;
+Settings.Stats  = [1];
 
 Settings.Log = 0;
 
@@ -90,7 +97,7 @@ disp('Data loaded')
 %prepare figure
 clf
 set(gcf,'color','w')
-subplot = @(m,n,p) subtightplot (m, n, p, [0.05, 0.02], [0.05 0.05], [0.05 0.1]);
+subplot = @(m,n,p) subtightplot (m, n, p, [0.01, 0.019], [0.05 0.1], [0.15 0.1]);
 Letters = 'abcdefghijklmnopqrstuvwxyz';
 
 %generate plotting combinations we want to produce
@@ -100,13 +107,15 @@ for iVar=1:1:numel(Settings.Vars)
   for iLayer = 1:1:numel(Settings.Layers)
     for iStat = 1:1:numel(Settings.Stats)
       k = k+1;
+      if k > 3; continue; end
       if strcmp('N',  Settings.Vars{iVar}) ...
        | strcmp('Cid',Settings.Vars{iVar}); Combos{k} = {Settings.Vars{iVar},iLayer,1};
-      else;Combos{k} = {Settings.Vars{iVar},iLayer,iStat};end
+      else;Combos{k} = {Settings.Vars{iVar},iLayer,Settings.Stats(iStat)};end
     end
   end
 end
 clear iVar iLayer iStat k
+
 
 %begin plotting
 k = 0;
@@ -128,7 +137,7 @@ for iCombo = 1:1:numel(Combos)
     k = k+1;
 %     subplot(2,2,k);
     hp = subplot(numel(Combos),4,k);
-    m_proj('lambert','lat',[20,80],'lon',[-130 140])
+    m_proj('lambert','lat',[25,80],'lon',[-130 150])
 %     m_proj('lambert','lat',[30,80],'lon',[-80 40])
     
     %black fill for areas with no data
@@ -151,13 +160,22 @@ for iCombo = 1:1:numel(Combos)
 
 
     %choose colours
-    switch Combo{1}
-      case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,240];  Units = 'Temperature [K]';
-      case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-40,40];   Units = 'Zonal Wind [K]';
-      case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
-      case 'STT_k'; colormap(hp,cbrew('PRGn',16));           ColourRange = [0 150]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+    switch Combo{3}
+      case {1,3}
+        switch Combo{1}
+          case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,240];  Units = 'Temperature [K]';
+          case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-50,50];   Units = 'Zonal Wind [K]';
+          case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
+          case 'STT_k'; colormap(hp,cbrew('Blues',16));           ColourRange = [0 1000]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+        end
+      case 4; %only computed upstream for STT_A
+         colormap(hp,cbrew('Reds',16)); 
+         ColourRange = [0.15 0.45]; 
+         Units = 'Gini Coefficient';
     end
     
+    
+    %change colour scale for gini coefficient
     
     
     %plot data
@@ -170,23 +188,39 @@ for iCombo = 1:1:numel(Combos)
     %tidy up map
     caxis(ColourRange)
     m_coast('color','k');
-    m_grid('fontsize',10);
+    m_grid('fontsize',10,'linestyle','--');
 
     %label
     m_text(0,90,['(',Letters(k),')'],'fontsize',22,'clipping','off', ...
            'horizontalalignment','center','fontweight','bold')
     
-    %done!
-    drawnow
+
+    
+         %season labels
+  if iCombo  == 1
+    switch iQuarter
+      case 1; Q = 'djf';
+      case 2; Q = 'mam';
+      case 3; Q = 'jja';
+      case 4; Q = 'son';
+    end
+    m_text(0,150,upper(Q),'horizontalalignment','center','fontsize',35,'fontweight','bold')
+  end
+  
+  %done!
+  drawnow
+    
   end
   
   
   %colour table
   x = [0.92 0.02];
-  y = [-1,1].*.1 + (1./(numel(Combos)+1))*((numel(Combos)+1)-iCombo);
+  y = [-1,1].*.1 + (1./(numel(Combos)+1))*((numel(Combos)+1)-iCombo) + (0.5-(iCombo-numel(Combos)./2)).*0.03;
   cb = colorbar('position',[x(1),y(1),x(2),y(2)-y(1)]);
   cb.Label.String = Units;
   drawnow
-  
+
+
   
 end
+

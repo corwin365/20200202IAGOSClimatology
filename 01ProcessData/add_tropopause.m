@@ -14,7 +14,7 @@ clearvars -except YEAR
 %% settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-TPSettings.DataDir.Trop  = [LocalDataDir,'/corwin/'];
+TPSettings.DataDir.Trop  = [LocalDataDir,'/corwin/'];%'/beegfs/scratch/user/f/cw785/Data';
 TPSettings.DataDir.IAGOS =  [LocalDataDir,'/corwin/IAGOS_st/'];
 TPSettings.TimeScale  = datenum(YEAR,1,1):1:datenum(YEAR,12,31);
 
@@ -77,10 +77,10 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   
   
   %load data
-  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*']);
+  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*vTEST*']);
   if numel(DayFile) == 0; clear DayFile; continue; end
   Data = load(DayFile{1});
-  
+
   %interpolate data
   Data.Results.TropPres = single(TropData.I(Data.Results.Lon,Data.Results.Lat,Data.Results.Time));
   
@@ -123,7 +123,6 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   end
   clear a iVar
   
-  
   %some time series crossing the dateline have continuous data, but with a
   %large lump of NaNs in the middle. Not sure what is causing these, and
   %the number of flights is so small it's not worth rerunning the whole
@@ -132,12 +131,12 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   for iCruise = 1:1:size(Data.Results.Lon,1);
     Cruise.Lon = Data.Results.Lon(iCruise,:);
     Jump = find(diff(find(~isnan(Cruise.Lon))) > 1);
-
+    
     if numel(Jump) ~= 1; continue; end %this ony occurs once in such records
     if abs(Cruise.Lon(Jump)) < 175; continue; end %must be near dateline
-    Next = max(diff(find(~isnan(Cruise.Lon))));%min(find(~isnan(Cruise.Lon(Jump+2:end))));
+    Next = min(find(~isnan(Cruise.Lon(Jump+2:end))));
     if abs(Cruise.Lon(Jump+Next+1)) < 175; continue; end %must be near dateline  
-
+    
     %ok, stitch the time series together.
     Good = [1:Jump,Jump+Next+1:numel(Cruise.Lon)];
     Order = unique([Good,1:1:numel(Cruise.Lon)],'stable');
@@ -177,14 +176,19 @@ for iDay=1:1:numel(TPSettings.TimeScale)
 %     disp(['Mean now ',num2str(round(nanmean(Data.Results.Prs(Data.Results.Prs ~= 0))))])
   end
   clear fac
-  
-
-  
+    
   %hand check any records longer than 10 000km, as these shouldn't exist,
   %and manually fix them.
   %(the steps in this section above were produced by examining stops here,
   %so this should not actually fire unless more data is acquired with more weird foibles)
-  if size(Data.Results.Lat,2) > 10000; stop; end
+  if size(Data.Results.Lat,2) > 10000;
+    Fields = fieldnames(Data.Results);
+    for iVar=1:1:numel(Fields)
+      V = Data.Results.(Fields{iVar});
+      V = V(:,1:9999);
+      Data.Results.(Fields{iVar}) = V;
+    end; clear BadLambda Fields iVar V
+  end
 
   Settings = Data.Settings;
   Results  = Data.Results;

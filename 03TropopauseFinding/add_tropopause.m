@@ -1,4 +1,4 @@
-clearvars
+clearvars -except YEAR
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -16,8 +16,7 @@ clearvars
 
 TPSettings.DataDir.Trop  = '.';
 TPSettings.DataDir.IAGOS =  [LocalDataDir,'/corwin/IAGOS_st/'];
-% TPSettings.TimeScale  = datenum(1994,8,1):1:datenum(2019,12,31);
-TPSettings.TimeScale = [728554,728700,728701,728751,728758,728855,729136,729175,729217,729224,729450,729531,729555,729567,729630,729748,729828,729844,729881,729902,729912,729923,729935,730047,730111,730178,730297,730351,730735,730976,731273,731442,733335,735394,735532,735811,735902,735933,735996,736078,736271,736323,736326,736469,736484,736486,736490,736494,736502,736507,736627,736631,736689,736698,736772,736854,736964,737025,737033,737089,737091,737105,737113,737120,737124,737185,737205,737222,737250];
+TPSettings.TimeScale  = datenum(YEAR,1,1):1:datenum(YEAR,12,31);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -78,7 +77,7 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   
   
   %load data
-  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*']);
+  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*v6*']);
   if numel(DayFile) == 0; clear DayFile; continue; end
   Data = load(DayFile{1});
   
@@ -178,13 +177,21 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   end
   clear fac
   
+  %wavelengths longer than 80km look odd, and will not be included in the paper
+  BadLambda = find(1./Data.Results.STT_k < 80);
+  Fields = fieldnames(Data.Results);
+  for iVar=1:1:numel(Fields)
+    V = Data.Results.(Fields{iVar});
+    V(BadLambda) = NaN;
+    Data.Results.(Fields{iVar}) = V;
+  end; clear BadLambda Fields iVar V
 
   
   %hand check any records longer than 10 000km, as these shouldn't exist,
   %and manually fix them.
   %(the steps in this section above were produced by examining stops here,
   %so this should not actually fire unless more data is acquired with more weird foibles)
-  if size(Data.Results.Lat,2) > 5000; stop; end
+  if size(Data.Results.Lat,2) > 10000; stop; end
 
   Settings = Data.Settings;
   Results  = Data.Results;

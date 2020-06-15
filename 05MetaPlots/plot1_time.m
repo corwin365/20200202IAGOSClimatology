@@ -13,7 +13,7 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.InFile = 'metadata_all_v2.mat';
+Settings.InFile = 'metadata_all_v7.mat';
 
 %height regions (absolute pressure)
 Settings.Region.Bot = [1000,225];
@@ -40,8 +40,8 @@ Calendar.Bot = nansum(Data.Results.Time.Prs(:,:,idx.Bot),3);
 Calendar.Mid = nansum(Data.Results.Time.Prs(:,:,idx.Mid),3);
 Calendar.Top = nansum(Data.Results.Time.Prs(:,:,idx.Top),3);
 Calendar.All = nansum(Data.Results.Time.Prs(:,:,idx.All),3);
-sum(Calendar.All(:))
-stop
+% sum(Calendar.All(:))
+% stop
 Years  = Data.Settings.Grid.Years;
 Months = Data.Settings.Grid.Months;
 

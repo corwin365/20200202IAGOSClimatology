@@ -27,7 +27,7 @@ Settings.MaxDz  = 100;%m
 Settings.Window = 15*60./Settings.dt;  %fifteen minutes
 
 %minimum length (km) of cruise
-Settings.MinCruiseLength = 100000;
+Settings.MinCruiseLength = 1000;
 
 %maximum size of any discontinuities before complete discard of dataset
 Settings.MaxDiscontinuity = 200;% km
@@ -39,38 +39,28 @@ Settings.MaxDiscontinuity = 200;% km
 Settings.SA.dx = 1; %km
 
 %maximum gap size
-Settings.SA.MaxSpaceGap = 40./Settings.SA.dx; %km
+Settings.SA.MaxSpaceGap = 20./Settings.SA.dx; %km
 
 %low-pass filter size
 Settings.SA.Detrend = 1000./Settings.SA.dx;
 
-%minimum wavelengths
-Settings.MinLambda = 20; %km
+%length of beginning and end to remove for edge-truncation reduction
+Settings.SA.Edges = 100./Settings.SA.dx;
+
+%minimum number of time points to bother applying peakfinder
+Settings.SA.MinPoints = 5;
+
+%minimum wavelength to detect
+Settings.SA.MinWavelength = 20;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% variables to retain
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%geolocation
-Settings.Vars.Geo.In  = {'lat','lon','Time'};
-Settings.Vars.Geo.Out = {'Lat','Lon','Time'};
 
 %s-transform - temperature
-Settings.Vars.STT.In  = {'IN','A','F1','EdgeMask'};
-Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k','STT_EdgeMask'};
-
-%s-transform - U
-Settings.Vars.STU.In  = {'IN','A','F1','EdgeMask'};
-Settings.Vars.STU.Out = {'Uprime','STU_A','STU_k','STU_EdgeMask'};
-
-%s-transform - V
-Settings.Vars.STV.In  = {'IN','A','F1','EdgeMask'};
-Settings.Vars.STV.Out = {'Vprime','STV_A','STV_k','STV_EdgeMask'};
-
-%metadata
-Settings.Vars.Meta.In  = {'air_press_AC','baro_alt_AC','zon_wind_AC','mer_wind_AC','air_temp_AC'};
-Settings.Vars.Meta.Out = {'Prs','Z','U','V','T'};
-
+Settings.Vars.STT.In  = {'IN','A','F1','Prs','Z','Lat','Lon','UTC_Time','U','V'};
+Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k','Prs','Z','Lat','Lon','Time','U','V'}; 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% preprocessing
@@ -82,22 +72,24 @@ if ~isodd(Settings.Window); Settings.Window = Settings.Window+1; end
 Settings.SA.Detrend = round(Settings.SA.Detrend);
 if ~isodd(Settings.SA.Detrend); Settings.SA.Detrend = Settings.SA.Detrend+1; end
 
+Settings.SA.Edges = ceil(Settings.SA.Edges);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% processing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for iDay =numel(Settings.TimeScale):-1:1
+for iDay =1:1:numel(Settings.TimeScale)
   
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_vTEST.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_mw.mat'];
   
- if exist(OutFile); 
-   %check when file was last modified 
-   file = dir(OutFile);
-   %last complete rerun was on the date below, so ignore any date after that...
-   if datenum(file.date) > datenum(2020,5,27,23,30,00);     
-     disp([datestr(Settings.TimeScale(iDay)),' already done'])
-     continue; 
-   end
- end
+% %   if exist(OutFile); 
+% %     %check when file was last modified 
+% %     file = dir(OutFile);
+% %     %last complete rerun was on the date below, so ignore any date after that...
+% %     if datenum(file.date) > datenum(2020,5,27,18,25,00);     
+% %       disp([datestr(Settings.TimeScale(iDay)),' already done'])
+% %       continue; 
+% %     end
+% %   end
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %create results arrays for day
@@ -105,11 +97,7 @@ for iDay =numel(Settings.TimeScale):-1:1
   
   X = NaN(1,1);%will expand out as needed
   Results = struct();
-  Vars = [Settings.Vars.Geo.Out, ...           
-          Settings.Vars.Meta.Out, ...
-          Settings.Vars.STT.Out, ...
-          Settings.Vars.STU.Out, ...
-          Settings.Vars.STV.Out,];
+  Vars = [Settings.Vars.STT.Out];
   for iVar=1:1:numel(Vars);
     Results.(Vars{iVar}) = X;
   end
@@ -129,21 +117,16 @@ for iDay =numel(Settings.TimeScale):-1:1
   for iFile=1:1:numel(Files);
     
     
- try
+%   try
       %load file, including unit conversions
       
       %in this step we interpolate to time to identify the cruises. space
       %intepolation will be done instead in the loop below to get accurate
       %spatial wavelengths
-      try
-        Data = prep_iagos(Files{iFile}, ...
-                          'SamplingRate',1./24./60./60.*Settings.dt, ...
-                          'CruiseDz',Settings.MaxDz, 'CruiseWindow',Settings.Window, ...
-                          'ApplyFlags',true);
-      catch;
-        disp(['Error in file ',Files{iFile}])
-        continue
-      end
+      Data = prep_iagos(Files{iFile}, ...
+                        'SamplingRate',1./24./60./60.*Settings.dt, ...
+                        'CruiseDz',Settings.MaxDz, 'CruiseWindow',Settings.Window, ...
+                        'ApplyFlags',true);
 
       %loop over cruises
       for iCruise = 1:1:size(Data.Cruises,1)
@@ -151,7 +134,7 @@ for iDay =numel(Settings.TimeScale):-1:1
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %find cruise info and regularly grid
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-        
+
         %identify cruise
         Cruise = Data.Cruises(iCruise,:);
         Cruise = Cruise(~isnan(Cruise));
@@ -159,7 +142,7 @@ for iDay =numel(Settings.TimeScale):-1:1
         %extract geolocation
         Lat = Data.lat(Cruise);    
         Lon = Data.lon(Cruise);     
-        
+
         %get distances for regular interpolation
         x = [Lat;Lon]'; y = circshift(x,1,1);
         dx = nph_haversine(x,y); dx(1) = dx(2);
@@ -210,7 +193,7 @@ for iDay =numel(Settings.TimeScale):-1:1
         
         if ~isfield(Regular,'air_temp_AC'); continue; end        
         
-        for iVar=1:1:3;
+        for iVar=1%:1:3;
         
           try
             %get the variable
@@ -246,40 +229,78 @@ for iDay =numel(Settings.TimeScale):-1:1
           
           %s-transform
           %scales: only use those in the valid range of wavelengths after filtering
-          LambdaRange = [Settings.MinLambda,Settings.SA.Detrend.*Settings.SA.dx];
+          LambdaRange = [Settings.SA.MinWavelength,Settings.SA.Detrend.*Settings.SA.dx];
           Len = numel(Var).*Settings.SA.dx;
           Lambdas = min(LambdaRange):Settings.SA.dx:max(LambdaRange);
-          Scales = unique(Len./Lambdas);
+          Scales = unique(round(Len./Lambdas));
+
           
           %do s-transform
           ST = nph_ndst(Var,Scales,Settings.SA.dx); %simple 1dst
-                    
+                 
           %put the gaps back
-          ST.In(Bad) = NaN;
-          ST.A( Bad) = NaN;
-          ST.F1(Bad) = NaN;
+          ST.ST(:,Bad) = NaN;
+                  
+          %remove edge-truncated features
+          if numel(ST.A) < 2.*Settings.SA.Edges; continue; end
+
+          for iScale = 1:1:numel(ST.scales)-1
+            Size = ceil(numel(ST.A)./ST.scales(iScale+1).*0.5);
+            if Size >= size(ST.ST,2); ST.ST(iScale,:) = NaN; continue; end
+            ST.ST(iScale,1:Size)       = NaN;
+            ST.ST(iScale,end-Size:end) = NaN;
+          end
+
           
-          %mask anything edge-truncated
-          CutOff = abs((1:1:numel(ST.F1))-numel(ST.F1)./2); CutOff = CutOff - CutOff(1);
-          Over   = 1./ST.F1 + 2.*CutOff;
-          ST.EdgeMask = zeros(size(ST.In));
-          ST.EdgeMask(Over > 0) = 1;
-                   
-          %finally, put back the end-NaNs
-          A2 = NaN(NaNTrim.NElements,1); A2(NaNTrim.Keep) = ST.A;  ST.A  = A2;
-          k2 = NaN(NaNTrim.NElements,1); k2(NaNTrim.Keep) = ST.F1; ST.F1 = k2;
-          i2 = NaN(NaNTrim.NElements,1); i2(NaNTrim.Keep) = ST.IN; ST.IN = i2; 
-          e2 = NaN(NaNTrim.NElements,1); e2(NaNTrim.Keep) = ST.EdgeMask; ST.EdgeMask = e2;
+          %and put the NaNs back that we took off the ends
+          ST2 = NaN(size(ST.ST,1),NaNTrim.NElements);
+          ST2(:,NaNTrim.Keep) = ST.ST;
+          IN2 = NaN(NaNTrim.NElements,1);
+          IN2(NaNTrim.Keep) = ST.IN;
+ 
+          %now, identify waves in each time step
+          PeakStore = zeros(size(ST2)); PeakStore(isnan(ST2)) = NaN;
+          for iTime=1:1:size(ST2,2)
+            
+            %extract series
+            Series = abs(ST2(:,iTime));
+            
+            %require a certain number of valid points
+            if nansum(~isnan(Series)) < Settings.SA.MinPoints; continue; end
+            
+            %find distinct peaks
+            [Pks,idx] = findpeaks(Series);
+            
+            %store
+            PeakStore(idx,iTime) = 1;
+          end
+          
+          %flip this into a list of wave amplitudes, locations and wavelengths (plus some metadata)
+          idx = find(PeakStore == 1);
+          [idxX,idxY] = ind2sub(size(ST2),idx);
+          Waves.Amp  = abs(ST2(idx))';
+          Waves.Lat  = Regular.lat(     idxY);
+          Waves.Lon  = Regular.lon(     idxY);
+          Waves.Time = Regular.UTC_time(idxY);
+          Waves.k    = ST.freqs(idxX);
+          Waves.In   = IN2(idxY);
+          Waves.Prs  = Regular.air_press_AC(idxY);
+          Waves.Z    = Regular.baro_alt_AC(idxY);
+          Waves.U    = Regular.zon_wind_AC(idxY);
+          Waves.V    = Regular.mer_wind_AC(idxY);
+          
+          
+          clear idx idxY idxX
 
           %and store
           switch iVar
-            case 1; STT = ST;
-            case 2; STU = ST;
-            case 3; STV = ST;
+            case 1; STT = Waves;
+            case 2; STU = Waves;
+            case 3; STV = Waves;
           end
           
           %tidy up
-          clear LambdaRange Len Scales A2 k2 ST Lambdas Bad Var Disco NaNTrim Over
+          clear LambdaRange Len Scales A2 k2 ST Lambdas Bad Var Disco NaNTrim
 
         end; clear iVar
         
@@ -287,7 +308,7 @@ for iDay =numel(Settings.TimeScale):-1:1
         %store the outputs
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        for VarType = {'Meta','Geo','STT','STU','STV'};
+        for VarType = {'STT'};
           
           if any(strcmp(VarType{1},{'STT','STU','STV'})) == 1 & ~exist(VarType{1},'var') 
             %variable does not exist. This is often the case for valid 
@@ -295,19 +316,28 @@ for iDay =numel(Settings.TimeScale):-1:1
             %or V data were discarded
             continue;
           end
-          
+
           for iVar=1:1:numel(Settings.Vars.(VarType{1}).Out)
            
             %pull results array out of struct
             R = Results.(Settings.Vars.(VarType{1}).Out{iVar});
+
             
             %get data to store
             switch VarType{1};
               case 'STT'; O = STT;
               case 'STU'; O = STU;
               case 'STV'; O = STV;
-              otherwise;  O = Regular;
             end
+            
+            %if the field is too short, extend it to match the data
+            if size(R,2) < numel(O.Time);
+              sz = size(R);
+              R2 = NaN(sz(1),numel(O.Time));
+              R2(:,1:sz(2)) = R;
+              R = R2; clear R2;
+            end
+            
               
             %if the field doesn't exist, set it all to NaNs
             if isfield(O,Settings.Vars.(VarType{1}).In{iVar});
@@ -329,52 +359,48 @@ for iDay =numel(Settings.TimeScale):-1:1
           
         end
       end; clear iCruise
-      
-      
 
-  catch; 
-    disp(['Error on ',datestr(Settings.TimeScale(iDay))])
-  end
+
+%    catch; 
+%      disp(['Error on ',datestr(Settings.TimeScale(iDay))])
+%    end
   end; clear iFile
-  
-  %because STU, STT and STV aren't generated every loop, it's possible
-  %that they may have ended up as shorter time series
-  %check this, and NaN-pad them if so to help logic of later routines
-  Longest = max([size(Results.STT_A,2),size(Results.STU_A,2),size(Results.STV_A,2)]);
-  
-  
-  if isfield(Results,'STU_A')
-    if size(Results.STU_A,2) < Longest;
-      Extra = NaN(size(Results.STU_A,1), ...
-                  Longest - size(Results.STU_A,2));
-      Results.STU_A        = cat(2,Results.STU_A, Extra);
-      Results.STU_k        = cat(2,Results.STU_k, Extra);
-      Results.STU_EdgeMask = cat(2,Results.STU_EdgeMask, Extra);      
-      Results.Uprime       = cat(2,Results.Uprime,Extra);
-    end
-  end
-  if isfield(Results,'STV_A')
-    if size(Results.STV_A,2) < Longest;
-      Extra = NaN(size(Results.STV_A,1), ...
-                  Longest - size(Results.STV_A,2));
-      Results.STV_A        = cat(2,Results.STV_A, Extra);
-      Results.STV_k        = cat(2,Results.STV_k, Extra);
-      Results.STV_EdgeMask = cat(2,Results.STV_EdgeMask, Extra);  
-      Results.Vprime       = cat(2,Results.Vprime,Extra);
-    end
-  end
-  if isfield(Results,'STT_A')
-    if size(Results.STT_A,2) < Longest;
-      Extra = NaN(size(Results.STT_A,1), ...
-                  Longest - size(Results.STT_A,2));
-      Results.STT_A        = cat(2,Results.STT_A, Extra);
-      Results.STT_k        = cat(2,Results.STT_k, Extra);
-      Results.STT_EdgeMask = cat(2,Results.STT_EdgeMask, Extra);  
-      Results.Tprime       = cat(2,Results.Tprime,Extra);
-    end
-  end  
-  clear Extra Longest
-  
+% % % %   
+% % % %   %because STU, STT and STV aren't generated every loop, it's possible
+% % % %   %that they may have ended up as shorter time series
+% % % %   %check this, and NaN-pad them if so to help logic of later routines
+% % % %   Longest = max([size(Results.STT_A,2),size(Results.STU_A,2),size(Results.STV_A,2)]);
+% % % %   
+% % % %   
+% % % %   if isfield(Results,'STU_A')
+% % % %     if size(Results.STU_A,2) < Longest;
+% % % %       Extra = NaN(size(Results.STU_A,1), ...
+% % % %                   Longest - size(Results.STU_A,2));
+% % % %       Results.STU_A  = cat(2,Results.STU_A, Extra);
+% % % %       Results.STU_k  = cat(2,Results.STU_k, Extra);
+% % % %       Results.Uprime = cat(2,Results.Uprime,Extra);
+% % % %     end
+% % % %   end
+% % % %   if isfield(Results,'STV_A')
+% % % %     if size(Results.STV_A,2) < Longest;
+% % % %       Extra = NaN(size(Results.STV_A,1), ...
+% % % %                   Longest - size(Results.STV_A,2));
+% % % %       Results.STV_A  = cat(2,Results.STV_A, Extra);
+% % % %       Results.STV_k  = cat(2,Results.STV_k, Extra);
+% % % %       Results.Vprime = cat(2,Results.Vprime,Extra);
+% % % %     end
+% % % %   end
+% % % %   if isfield(Results,'STT_A')
+% % % %     if size(Results.STT_A,2) < Longest;
+% % % %       Extra = NaN(size(Results.STT_A,1), ...
+% % % %                   Longest - size(Results.STT_A,2));
+% % % %       Results.STT_A  = cat(2,Results.STT_A, Extra);
+% % % %       Results.STT_k  = cat(2,Results.STT_k, Extra);
+% % % %       Results.Tprime = cat(2,Results.Tprime,Extra);
+% % % %     end
+% % % %   end  
+% % % %   clear Extra Longest
+% % % %   
 
   %finally, store the data for the day
   if nansum(Results.Lon(:)) ~= 0;  save(OutFile,'Results','Settings'); end

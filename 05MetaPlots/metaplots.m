@@ -14,7 +14,7 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual'];
-Settings.OutFile = 'metadata_all_v2.mat';
+Settings.OutFile = 'metadata_all_v7.mat';
 
 
 %map data
@@ -57,7 +57,7 @@ for iMonth= 1:1:numel(mmi)
   end
   
   %get data
-  File = [Settings.DataDir,'/merged_',num2str(yyi(iMonth)),'.mat'];
+  File = [Settings.DataDir,'/merged_',num2str(yyi(iMonth)),'_v7.mat'];
   if strcmp(AllData.Name,File) ~= 1;
     %load the data
     if ~exist(File,'file'); clear File; continue; end
@@ -79,9 +79,9 @@ for iMonth= 1:1:numel(mmi)
     Data.Results.(Vars{iVar}) = V;
   end; clear V iVar Vars;
 
-
+  
   %pull out data we need, and tidy it up
-  Good = find(~isnan(Data.Results.STT_A) & Data.Results.STT_A~= 0);
+  Good = find(~isnan(Data.Results.STT_A) & Data.Results.STT_A~= 0 & 1./Data.Results.STT_k > 80);
   if numel(Good) == 0; clear Good Data; continue; end
   
   [Year,Month,~] = datevec(Data.Results.Time(Good));  
