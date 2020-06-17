@@ -19,22 +19,28 @@ Settings.Mode = 'h';
 %smoothing of final plot
 Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 
+% %plot rows. one row for each combination of the below
+%   %%strings, as a cell struct
+% Settings.Vars    = {'STT_A','STT_k';};
+%   %%indices in the order specified in file Settings struct 
+% Settings.Layers =  13;
+% Settings.Stats  = [3,4];
+
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'STT_A','STT_k';};
+Settings.Vars    = {'U';};
   %%indices in the order specified in file Settings struct 
-% Settings.Layers = 21;
-Settings.Stats  = [3,4];
+Settings.Layers = 13;
+Settings.Stats  = [3,2];
 
-% % %plot rows. one row for each combination of the below
-% %   %%strings, as a cell struct
-% % Settings.Vars    = {'U';};
-% %   %%indices in the order specified in file Settings struct 
-% % Settings.Layers = 21:23;
-% % Settings.Stats  = [3];
+% %plot rows. one row for each combination of the below
+%   %%strings, as a cell struct
+% Settings.Vars    = {'N';};
+%   %%indices in the order specified in file Settings struct 
+% Settings.Layers = 13;
+% Settings.Stats  = [1];
 
 Settings.Log = 0;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% prep
@@ -46,10 +52,10 @@ for iQ=1:1:4;
   
   
   switch iQ; 
-    case 1; Q = 'djf'; 
-    case 2; Q = 'mam'; 
-    case 3; Q = 'jja'; 
-    case 4; Q = 'son'; 
+    case 2; Q = 'djf'; 
+    case 3; Q = 'mam'; 
+    case 4; Q = 'jja'; 
+    case 1; Q = 'son'; 
   end
   
   Layers = struct();
@@ -164,10 +170,15 @@ for iCombo = 1:1:numel(Combos)
       case {1,3}
         switch Combo{1}
           case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,240];  Units = 'Temperature [K]';
-          case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-50,50];   Units = 'Zonal Wind [K]';
+          case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-50,50];   Units = 'Zonal Wind [m/s]';
           case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
-          case 'STT_k'; colormap(hp,cbrew('Blues',16));           ColourRange = [100 700]; Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+          case 'STT_k'; colormap(hp,cbrew('YlOrBr',16));         ColourRange = [200 600];  Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+          case 'N';     colormap(hp,cbrew('Blues',16));          ColourRange = [2.5 4];  Units = 'log_{10} (N. Points)'; ToPlot(ToPlot < 1) = NaN;
         end
+      case 2;
+        switch Combo{1}
+          case 'U';     colormap(hp,cbrew('YlOrRd',16)); ColourRange = [5,30];   Units = '\sigma of Zonal Wind [m.s]';
+        end          
       case 4; %only computed upstream for STT_A
          colormap(hp,cbrew('Reds',16)); 
          ColourRange = [0.2 0.4]; 
@@ -199,10 +210,10 @@ for iCombo = 1:1:numel(Combos)
          %season labels
   if iCombo  == 1
     switch iQuarter
-      case 1; Q = 'djf';
-      case 2; Q = 'mam';
-      case 3; Q = 'jja';
-      case 4; Q = 'son';
+      case 2; Q = 'djf';
+      case 3; Q = 'mam';
+      case 4; Q = 'jja';
+      case 1; Q = 'son';
     end
     m_text(0,150,upper(Q),'horizontalalignment','center','fontsize',35,'fontweight','bold')
   end
