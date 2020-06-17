@@ -1,4 +1,4 @@
-function func_generate_time_series(FILENAME, LONRANGE, LATRANGE, PRSRANGE,TIMESCALE, VARIABLE, METRIC, TIMEWINDOW)
+clearvars
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,17 +13,17 @@ function func_generate_time_series(FILENAME, LONRANGE, LATRANGE, PRSRANGE,TIMESC
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Settings.DataDir    = [LocalDataDir ,'/corwin/IAGOS_annual/'];
-Settings.TimeScale  = TIMESCALE;
-Settings.TimeWindow = TIMEWINDOW; %days sliding window
+Settings.TimeScale  = datenum(1994,8,1):1:datenum(2019,12,31);
+Settings.TimeWindow = 21; %days sliding window
 
-Settings.Vars = {VARIABLE};
-Settings.Metrics = {METRIC};
+Settings.Vars = {'STT_A'};
+Settings.Metrics ={'N','nanmean','nanmedian','NU'};
 Settings.MinLambda = 25; %km
 
-Settings.LatRange = LATRANGE;
-Settings.LonRange = LONRANGE;
-Settings.PrsRange = PRSRANGE;
-Settings.OutFile = ['data/',FILENAME,'.mat'];
+Settings.LatRange = [50,85];
+Settings.LonRange = [-130,150];
+Settings.PrsRange = [250,200];
+Settings.OutFile = 'north7.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load all data for the region into one pile
@@ -45,7 +45,6 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
     
     %create an array for unique flight IDs
     File.NU = repmat(1:1:size(File.Lat,1),size(File.Lat,2),1)';
-
     
     %extract those in our space region (just keep the whole time range, useful for e.g. smoothing)
     InLatRange = inrange(File.Lat,Settings.LatRange);
@@ -53,15 +52,13 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
     InRange = intersect(InLatRange,InLonRange);
     InPrsRange = inrange(File.Prs,Settings.PrsRange);
     InRange = intersect(InRange,InPrsRange);
-    InLambdaRange = find(1./File.STT_k > Settings.MinLambda);
-    InRange = intersect(InRange,InLambdaRange);
     
     %glue to our arrays
     if ~isfield(Store,'Lat'); Store = reduce_struct(File,InRange); 
     else;                     Store = cat_struct(Store,reduce_struct(File,InRange),1,{'OldYear'});
     end
     Store.OldYear = yy;
-    clear InLatRange InLonRange InRange File InPrsRange InLambdaRange
+    clear InLatRange InLonRange InRange File InPrsRange
     disp(['Loaded ',num2str(yy)]);
   end
               
@@ -83,7 +80,7 @@ for iVar=1:1:numel(Settings.Vars)
   Var = Store.(Settings.Vars{iVar});
   
   %grid the data
-%   textprogressbar(['Gridding ',Settings.Vars{iVar},' '])
+  textprogressbar(['Gridding ',Settings.Vars{iVar},' '])
   for iTime =1:1:numel(Settings.TimeScale)
     
     InTimeRange = inrange(Store.Time, ...
@@ -114,13 +111,13 @@ for iVar=1:1:numel(Settings.Vars)
       end
     end; clear iMetric Good Series
       
-%     textprogressbar(iTime./numel(Settings.TimeScale).*100)
+    textprogressbar(iTime./numel(Settings.TimeScale).*100)
   end
   
   %store
   Results.(Settings.Vars{iVar}) = R;
                                       
-%   textprogressbar(100); textprogressbar('!');
+  textprogressbar(100); textprogressbar('!');
   
   clear R Var iTime InTimeRange iMetric
   

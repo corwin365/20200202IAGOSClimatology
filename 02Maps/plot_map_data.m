@@ -19,19 +19,19 @@ Settings.Mode = 'h';
 %smoothing of final plot
 Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 
-% %plot rows. one row for each combination of the below
-%   %%strings, as a cell struct
-% Settings.Vars    = {'STT_A','STT_k';};
-%   %%indices in the order specified in file Settings struct 
-% Settings.Layers =  13;
-% Settings.Stats  = [3,4];
-
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'U';};
+Settings.Vars    = {'STT_A','STT_k';};
   %%indices in the order specified in file Settings struct 
-Settings.Layers = 13;
-Settings.Stats  = [3,2];
+Settings.Layers =  13;
+Settings.Stats  = [3,4];
+
+% %plot rows. one row for each combination of the below
+%   %%strings, as a cell struct
+% Settings.Vars    = {'U';};
+%   %%indices in the order specified in file Settings struct 
+% Settings.Layers = 13;
+% Settings.Stats  = [3,2];
 
 % %plot rows. one row for each combination of the below
 %   %%strings, as a cell struct

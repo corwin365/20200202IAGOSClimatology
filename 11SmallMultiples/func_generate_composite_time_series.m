@@ -1,4 +1,4 @@
-function func_generate_time_series(FILENAME, LONRANGE, LATRANGE, PRSRANGE,TIMESCALE, VARIABLE, METRIC, TIMEWINDOW)
+function func_generate_time_series(FILENAME, LON, LAT, RANGE, PRSRANGE,TIMESCALE, VARIABLE, METRIC, TIMEWINDOW)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,8 +20,7 @@ Settings.Vars = {VARIABLE};
 Settings.Metrics = {METRIC};
 Settings.MinLambda = 25; %km
 
-Settings.LatRange = LATRANGE;
-Settings.LonRange = LONRANGE;
+Settings.Range = RANGE;
 Settings.PrsRange = PRSRANGE;
 Settings.OutFile = ['data/',FILENAME,'.mat'];
 
@@ -48,9 +47,11 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
 
     
     %extract those in our space region (just keep the whole time range, useful for e.g. smoothing)
-    InLatRange = inrange(File.Lat,Settings.LatRange);
-    InLonRange = inrange(File.Lon,Settings.LonRange);
-    InRange = intersect(InLatRange,InLonRange);
+    x = [File.Lat(:),File.Lon(:)];
+    y = repmat([LAT,LON],size(x,1),1);
+    dx = nph_haversine(x,y);
+    InRange = find(dx < Settings.Range);
+    
     InPrsRange = inrange(File.Prs,Settings.PrsRange);
     InRange = intersect(InRange,InPrsRange);
     InLambdaRange = find(1./File.STT_k > Settings.MinLambda);
@@ -76,7 +77,7 @@ disp('Data loaded')
 for iVar=1:1:numel(Settings.Vars)
   
   %generate a results array
-  R = NaN(numel(Settings.TimeScale),...
+  R = NaN(366,...
           numel(Settings.Metrics));
   
   %extract the variable
@@ -84,11 +85,14 @@ for iVar=1:1:numel(Settings.Vars)
   
   %grid the data
 %   textprogressbar(['Gridding ',Settings.Vars{iVar},' '])
-  for iTime =1:1:numel(Settings.TimeScale)
+  dd = date2doy(Store.Time);
+  for iDay =1:1:366
+
+    TimeWindow = iDay+[-1,1].*Settings.TimeWindow./2;
     
-    InTimeRange = inrange(Store.Time, ...
-                          Settings.TimeScale(iTime)+[-1,1].*Settings.TimeWindow./2);
-    if numel(InTimeRange) == 0;continue; end
+    InTimeRange= find(dd >= TimeWindow(1) & dd < TimeWindow(2));
+    if min(TimeWindow) <   0; InTimeRange = [InTimeRange;find(dd > 366+min(TimeWindow))]; end
+    if max(TimeWindow) > 366; InTimeRange = [InTimeRange;find(dd < max(TimeWindow)-366)]; end
     
     NUnique = numel(~isnan(unique(Store.NU(InTimeRange))));
     
@@ -107,10 +111,10 @@ for iVar=1:1:numel(Settings.Vars)
       Good = find(~isnan(Series));
       if nansum(Series(Good)) == 0; continue; end
       
-      if     strcmp(Settings.Metrics{iMetric},'prctile'); R(iTime,iMetric) = feval(Settings.Metrics{iMetric},Series(Good),Settings.PC(iMetric));
-      elseif strcmp(Settings.Metrics{iMetric},'NU');      R(iTime,iMetric) = NUnique;
-      elseif strcmp(Settings.Metrics{iMetric},'N');       R(iTime,iMetric) = numel(Good);
-      else                                                R(iTime,iMetric) = feval(Settings.Metrics{iMetric},Series(Good));
+      if     strcmp(Settings.Metrics{iMetric},'prctile'); R(iDay,iMetric) = feval(Settings.Metrics{iMetric},Series(Good),Settings.PC(iMetric));
+      elseif strcmp(Settings.Metrics{iMetric},'NU');      R(iDay,iMetric) = NUnique;
+      elseif strcmp(Settings.Metrics{iMetric},'N');       R(iDay,iMetric) = numel(Good);
+      else                                                R(iDay,iMetric) = feval(Settings.Metrics{iMetric},Series(Good));
       end
     end; clear iMetric Good Series
       
