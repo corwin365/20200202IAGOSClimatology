@@ -13,12 +13,12 @@ clearvars
 %time and pressure range
 TimeScale = datenum(1994,8,1):1:datenum(2019,12,31);
 % TimeScale = datenum(2000,1,1):1:datenum(2005,12,31);
-PrsRange = [200,250];
+PrsRange = [10000,0];
 TimeWindow = 31; %days
 
 %what data do we want?
 Range = 500; %km
-Generate = 1; %only generate new data if needed, it is *very* slow
+Generate = 0; %only generate new data if needed, it is *very* slow
 
 %baseline time series
 Baseline = 1;
@@ -35,7 +35,7 @@ Names{end+1} = 'Baffin Island';   Lons(end+1) =  -69; Lats(end+1) = 68; Oro(end+
 Names{end+1} = 'Canadian Plains'; Lons(end+1) = -110; Lats(end+1) = 61; Oro(end+1) = 0;
 Names{end+1} = 'Hudson Bay';      Lons(end+1) =  -90; Lats(end+1) = 59; Oro(end+1) = 0;
 Names{end+1} = 'Quebec';          Lons(end+1) =  -73; Lats(end+1) = 54; Oro(end+1) = 0.5;
-Names{end+1} = 'Greenland';       Lons(end+1) =  -47; Lats(end+1) = 64; Oro(end+1) = 1;
+Names{end+1} = 'South Greenland'; Lons(end+1) =  -47; Lats(end+1) = 64; Oro(end+1) = 1;
 Names{end+1} = 'Iceland';         Lons(end+1) =  -18; Lats(end+1) = 65; Oro(end+1) = 1;
 Names{end+1} = 'Central Europe';  Lons(end+1) =   12; Lats(end+1) = 51; Oro(end+1) = 0.5;
 Names{end+1} = 'Sikhote Alin';    Lons(end+1) =  138; Lats(end+1) = 48; Oro(end+1) = 1;
@@ -47,16 +47,15 @@ Names{end+1} = 'Ukraine';         Lons(end+1) =   35; Lats(end+1) = 49; Oro(end+
 Names{end+1} = 'Iran';            Lons(end+1) =   49; Lats(end+1) = 35; Oro(end+1) = 1;
 Names{end+1} = 'Siberia';         Lons(end+1) =  100; Lats(end+1) = 65; Oro(end+1) = 1;
 Names{end+1} = 'East China';      Lons(end+1) =  117; Lats(end+1) = 38; Oro(end+1) = 0;
+Names{end+1} = 'CMR Border';      Lons(end+1) =  120; Lats(end+1) = 55; Oro(end+1) = 1;
+Names{end+1} = 'UK';              Lons(end+1) =   -2; Lats(end+1) = 54; Oro(end+1) = 1;
+Names{end+1} = 'Mid Greenland';   Lons(end+1) =  -42; Lats(end+1) = 72; Oro(end+1) = 1;
 
 
-
-
-% % % Scotland  -8  59
 % % % South Scandinavia  9  56
 % % % East Med  25  35
 % % % South Kazakhstan  67  45
 % % % Afghanistan  69  38
-% % % CMR Corner  120  55
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,11 +64,11 @@ Names{end+1} = 'East China';      Lons(end+1) =  117; Lats(end+1) = 38; Oro(end+
 
 if Generate == 1;
   
-  for iSeries = 15:1:numel(Names);
+  for iSeries = 20:1:numel(Names);
     disp(['Processing box over ',Names{iSeries}])
     
     %generate the time series
-    func_generate_composite_time_series(urlencode(Names{iSeries}),Lons(iSeries),Lats(iSeries),Range, PrsRange,TimeScale, 'STT_A', 'nanmedian', TimeWindow)
+    func_generate_composite_time_series(urlencode(Names{iSeries}),Lons(iSeries),Lats(iSeries),Range, PrsRange,TimeScale, 'STT_A', 'nanmean', TimeWindow)
 
     %open the file we just created and store the location metadata, to allow us to decouple the processing
     File = load(['data/',urlencode(Names{iSeries}),'.mat']);
@@ -147,7 +146,6 @@ Lons = Lons(Order);
 Oro  = Oro(Order);
 Series = Series(Order,:,:);
 Names = Names(Order);
-clear Order
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% plot the individual time series

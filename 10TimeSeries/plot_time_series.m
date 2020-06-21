@@ -12,12 +12,12 @@ clearvars
 %% settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Settings.InFile = 'newfoundland_14_b80.mat';
+Settings.InFile = 'northatlantic_31.mat';%'newfoundland_14_b80.mat';
 % Settings.InFile = 'greenland_31_b80.mat'; 
 
 %plots
 Settings.Combos = {{'STT_A',4,'N. Flights',[0 40]},      ... 
-                   {'STT_A',2,'Amplitude',[0.2,1.8]},      ... 
+                   {'STT_A',3,'Amplitude',[0.2,1.8]},      ... 
                    {'STT_k',3,'Wavelength',[50 500]}};
 %                    {'T',2,'Temperature',[210 230]}};            %mean temperature
                  %{'U',3,'Median wind speed',[0,60]}
@@ -74,6 +74,12 @@ for iCombo=1:1:numel(Settings.Combos);
   %plot data
   plot(Data.Settings.TimeScale,TS,'-','color',[1,1,1].*0.6,'linewi',0.5); 
   plot(Data.Settings.TimeScale,LTS,'k-','linewi',2); 
+  
+  %linear trend
+  Good = find(~isnan(Data.Settings.TimeScale + LTS'));
+  [p,S] = polyfit(Data.Settings.TimeScale(Good),LTS(Good),1);
+  px = polyval(p,Data.Settings.TimeScale);
+  plot(Data.Settings.TimeScale,px,'r-')
   
   %tidy
   datetick

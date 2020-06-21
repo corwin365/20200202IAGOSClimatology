@@ -27,10 +27,16 @@ Settings.MinLambda = 80; %km
 % % Settings.PrsRange = [250,200];
 % % Settings.OutFile = 'greenland_31_b80.mat';
 
-Settings.LatRange = [38,50];
-Settings.LonRange = [-70,-40];
+% Settings.LatRange = [38,50];
+% Settings.LonRange = [-70,-40];
+% Settings.PrsRange = [250,200];
+% Settings.OutFile = 'newfoundland_14_b80.mat';
+
+Settings.LatRange = [30,60];
+Settings.LonRange = [-60,-20];
 Settings.PrsRange = [250,200];
-Settings.OutFile = 'newfoundland_14_b80.mat';
+Settings.OutFile = 'northatlantic_31.mat';
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load all data for the region into one pile
@@ -46,7 +52,7 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
   if Store.OldYear ~= yy
 
     %load data
-    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_v6.mat'];
+    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_v7.mat'];
     if ~exist(FileName,'file'); continue; end
     File = load(FileName); File = File.Results;
     
@@ -59,13 +65,15 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
     InRange = intersect(InLatRange,InLonRange);
     InPrsRange = inrange(File.Prs,Settings.PrsRange);
     InRange = intersect(InRange,InPrsRange);
+    InLambdaRange = find(1./File.STT_k > 25);
+    InRange = intersect(InRange,InLambdaRange);
     
     %glue to our arrays
     if ~isfield(Store,'Lat'); Store = reduce_struct(File,InRange); 
     else;                     Store = cat_struct(Store,reduce_struct(File,InRange),1,{'OldYear'});
     end
     Store.OldYear = yy;
-    clear InLatRange InLonRange InRange File InPrsRange
+    clear InLatRange InLonRange InRange File InPrsRange InLambdaRange
     disp(['Loaded ',num2str(yy)]);
   end
               

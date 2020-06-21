@@ -1,9 +1,5 @@
 clearvars -except OUTFILE METHOD DAYS PRSBAND
 
-METHOD = 'g';
-DAYS = 'MAM';
-PRSBAND = 1;
-OUTFILE = 'test.mat';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -30,7 +26,7 @@ end; clear DAYS
 
 Settings.Method = METHOD; clear METHOD
 
-Settings.OutFile = [OUTFILE,'.mat']; clear OUTFILE;
+Settings.OutFile = ['out/',OUTFILE,'.mat']; clear OUTFILE;
 
 switch PRSBAND
   case  1; Settings.PrsBands = {'a',   0,1000};
@@ -43,6 +39,12 @@ switch PRSBAND
   case  8; Settings.PrsBands = {'t',-100,-200};
   case  9; Settings.PrsBands = {'t',-200,-300};
   case 10; Settings.PrsBands = {'t',-300,-400};
+  case 31; Settings.PrsBands = {'a', 350, 300};
+  case 32; Settings.PrsBands = {'a', 300, 250};
+  case 33; Settings.PrsBands = {'a', 250, 200};
+  case 34; Settings.PrsBands = {'a', 200, 150};
+  case 35; Settings.PrsBands = {'a', 150, 100};
+  
 end; Settings.PrsBands = {Settings.PrsBands}; clear PRSBAND
 
 
@@ -54,14 +56,10 @@ Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
 %  Settings.OutFile = 'mapdata_djf_h5000.mat'
 
 %variables to process
-Settings.Vars = {'STT_A','STT_k','T','U'};
+Settings.Vars = {'STT_A','STT_k','T','U','V','TropPres'};
 
 %time period to analyse
 Settings.Years = 1994:1:2020;
-%  Settings.Days  = [335:1:365,1:1:59]; %DJF 
-%  Settings.Days  = [60:151]; %MAM 
-%  Settings.Days  = [152:244]; %JJA 
-%  Settings.Days  = [245:334]; %SON
 
 %final grid size to output the results on
 Settings.Grid.Lon = -180:1:180;
@@ -70,21 +68,6 @@ Settings.Grid.Lat = -90:1:90;
 %statistics to compute
 Settings.Stats = {'mean','stdev','median','gini'};
 
-%height bands
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%pressure/height bands. Can overlap safely. Order of numbers doesn't matter.
-%'t' for tropopause-relative, 'a' for absolute.
-%  Settings.PrsBands = {{'a',   0,1000}, ...     %all heights
-%                       {'a', 350, 250}, ...     %bottom half
-%                       {'a', 250, 100}, ...     %top half
-%                       {'t', 200, 100}, ...
-%                       {'t', 100,   0}, ...
-%                       {'t', -50,  50}, ...                     
-%                       {'t',   0,-100}, ...
-%                       {'t',-100,-200}, ...
-%                       {'t',-200,-300}, ...
-%                       {'t',-300,-400}};  
 
 %clustering
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -98,11 +81,11 @@ Settings.ClusterParams.G.Lat = -90:3:90;
 
 %hierarchical param settings only used if in hierarchical mode
 Settings.ClusterParams.H.NClusters   = 5000;
-Settings.ClusterParams.H.MinPoints   = 100;
-Settings.ClusterParams.H.MergeArea   = [0.33,0.33]; %points will be rounded off to the nearest this (lon/lat) and then duplicates removed before defining clusters
+Settings.ClusterParams.H.MinPoints   = 500;
+Settings.ClusterParams.H.MergeArea   = [0.2,0.2]; %points will be rounded off to the nearest this (lon/lat) and then duplicates removed before defining clusters
 Settings.ClusterParams.H.MaxIter     = 1000;
 Settings.ClusterParams.H.NReplicates = 10;
-Settings.ClusterParams.H.MaxDist     = 500; %km from cluster centre permitted
+Settings.ClusterParams.H.MaxDist     = 300; %km from cluster centre permitted
 
 %bootstrapping
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,7 +98,7 @@ Settings.BS.NStraps = 500;
 
 %number of rows to pull out of the RNG each time 
 %(no effect on final results, just helps with runtime)
-Settings.BS.NPerPass  = 10;
+Settings.BS.NPerPass  = 20;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% preprocessing
@@ -140,7 +123,7 @@ textprogressbar('Loading data ')
 for iYear = 1:1:numel(Settings.Years);
   
   %load data for the year
-  YearFile = [Settings.DataDir,'/merged_',num2str(Settings.Years(iYear)),'.mat'];
+  YearFile = [Settings.DataDir,'/merged_',num2str(Settings.Years(iYear)),'_v7.mat'];
   if ~exist(YearFile,'file'); continue; end
   YearData = load(YearFile); YearData = YearData.Results;
   
@@ -149,12 +132,14 @@ for iYear = 1:1:numel(Settings.Years);
   Select.NonZero  = find((YearData.Lon + 1000.*YearData.Lat) ~= 0); %lat and lon values are not both zero
   Select.NonNaN   = find(~isnan(YearData.Lon + YearData.Lat)); %lat and lon values are not nans
   Select.GWs      = find(~isnan(YearData.STT_A)); %gravity waves were measured
+  Select.Lambda   = find(1./YearData.STT_k > 25); %gravity waves were measured  
   
   %combine the selections into one call
   Selected = Select.InPeriod;
   Selected = intersect(Selected,Select.NonZero);  
   Selected = intersect(Selected,Select.NonNaN); 
   Selected = intersect(Selected,Select.GWs);
+  Selected = intersect(Selected,Select.Lambda);  
   
   %pull out the indices we want
   YearData = reduce_struct(YearData,Selected);
@@ -261,7 +246,7 @@ for iBand = 1:1:numel(Settings.PrsBands)
     
     for iClust = 1:1:numel(Clusters);
       %generate randoms
-      r = randi(NPerClust(iClust),10,Settings.BS.NSamples);
+      r = randi(NPerClust(iClust),Settings.BS.NPerPass ,Settings.BS.NSamples);
       
       %convert from number-within-cluster to number-within-dataset, and store
       a = find(IDs == Clusters(iClust));
@@ -269,7 +254,7 @@ for iBand = 1:1:numel(Settings.PrsBands)
     end; clear iClust
     
     %store
-    Randoms(:,((iPiece-1)*10)+1:iPiece*10,:) = Piece;
+    Randoms(:,((iPiece-1)*Settings.BS.NPerPass )+1:iPiece*Settings.BS.NPerPass ,:) = Piece;
     
     if mod(iPiece,5) == 1; textprogressbar(iPiece./NPieces.*100); end
   end
@@ -308,6 +293,12 @@ for iBand = 1:1:numel(Settings.PrsBands)
       end
     end
     clear iCluster Bad Good r
+    
+    %some numbers will overflow the random space, due to slightly different numbers of points in each array that are non-NaN
+    Bad = find(Randoms > numel(V));
+    New = randsample(1:1:numel(V),numel(Bad),true);
+    Randoms(Bad) = New;
+    clear Bad
     
     %compute the statistics for each cluster and bootstrap sample
     for iStat= 1:1:numel(Settings.Stats)
