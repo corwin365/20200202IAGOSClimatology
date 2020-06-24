@@ -19,19 +19,19 @@ Settings.Mode = 'h';
 %smoothing of final plot
 Settings.SmoothSize = [1,1].*3; %FWHM of Gaussian smoother
 % 
+% % %plot rows. one row for each combination of the below
+% %   %%strings, as a cell struct
+% % Settings.Vars    = {'STT_A','STT_k';};
+% %   %%indices in the order specified in file Settings struct 
+% % Settings.Layers =  1;
+% % Settings.Stats  = [3,4];
+
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'STT_A','STT_k';};
+Settings.Vars    = {'T','U','V'};
   %%indices in the order specified in file Settings struct 
-Settings.Layers =  1;
-Settings.Stats  = [3,4];
-
-% %plot rows. one row for each combination of the below
-%   %%strings, as a cell struct
-% Settings.Vars    = {'T','U','V'};
-%   %%indices in the order specified in file Settings struct 
-% Settings.Layers = 13;
-% Settings.Stats  = [3];
+Settings.Layers = 1;
+Settings.Stats  = [3];
 
 
 % %plot rows. one row for each combination of the below
@@ -69,7 +69,7 @@ for iQ=1:1:4;
   
   Layers = struct();
   for iLayer = 1:1:numel(Settings.Layers)
-    File = ['out/',Settings.Mode,'_',Q,'_','b',num2str(Settings.Layers(iLayer)),'.mat'];
+    File = ['out/',Settings.Mode,'_',Q,'_','b',num2str(Settings.Layers(iLayer)),'_sgolay900.mat'];
     File = load(File);
     if iLayer == 1;
       Layers = File.Results;
@@ -181,9 +181,9 @@ for iCombo = 1:1:numel(Combos)
           case 'T';     colormap(hp,cbrew('RdBu',16));           ColourRange = [210,235];  Units = 'Temperature [K]';
           case 'U';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-50,50];   Units = 'Zonal Wind [m/s]';
           case 'V';     colormap(hp,cbrew('nph_BlueOrange',16)); ColourRange = [-20,20];   Units = 'Merid Wind [m/s]';
-          case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.35 1.2]; Units = 'Amplitude [K]';
-          case 'STT_k'; colormap(hp,cbrew('YlOrBr',16));         ColourRange = [200 600];  Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
-          case 'N';     colormap(hp,cbrew('Blues',16));          ColourRange = [2.5 4];  Units = 'log_{10} (N. Points)'; ToPlot(ToPlot < 1) = NaN;
+          case 'STT_A'; colormap(hp,cbrew('RdYlBu',16));         ColourRange = [0.2 0.9]; Units = 'Amplitude [K]';
+          case 'STT_k'; colormap(hp,flipud(cbrew('YlOrBr',16))); ColourRange = [100 300];  Units = 'Wavelength [km]'; ToPlot = 1./ToPlot;
+          case 'N';     colormap(hp,cbrew('Blues',16));          ColourRange = [2.5 4];    Units = 'log_{10} (N. Points)'; ToPlot(ToPlot < 1) = NaN;
         end
       case 2;
         switch Combo{1}
@@ -193,7 +193,7 @@ for iCombo = 1:1:numel(Combos)
         end
       case 4; %only computed upstream for STT_A
          colormap(hp,cbrew('Reds',16)); 
-         ColourRange = [0.2 0.4]; 
+         ColourRange = [0.2 0.45]; 
          Units = 'Gini Coefficient';
     end
     

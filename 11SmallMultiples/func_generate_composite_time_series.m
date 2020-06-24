@@ -38,7 +38,7 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
   if Store.OldYear ~= yy
 
     %load data
-    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_v7.mat'];
+    FileName = [Settings.DataDir,'/merged_',num2str(yy),'_sgolay900.mat'];
     if ~exist(FileName,'file'); continue; end
     File = load(FileName); File = File.Results;
     
@@ -56,6 +56,9 @@ for Time = floor(min(Settings.TimeScale)-(Settings.TimeWindow./2)) ...
     InRange = intersect(InRange,InPrsRange);
     InLambdaRange = find(1./File.STT_k > Settings.MinLambda);
     InRange = intersect(InRange,InLambdaRange);
+    
+    InLambdaRange = find(File.U > 20);
+    InRange = intersect(InRange,InLambdaRange);    
     
     %glue to our arrays
     if ~isfield(Store,'Lat'); Store = reduce_struct(File,InRange); 

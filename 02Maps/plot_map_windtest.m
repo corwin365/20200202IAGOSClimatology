@@ -21,10 +21,10 @@ Settings.SmoothSize = [1,1].*3; %FWHM of Gaussian smoother
 
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'STT_A','U'};
+Settings.Vars    = {'STT_A','U','STT_k','TropPres','V'};
   %%indices in the order specified in file Settings struct 
 Settings.Layers = 1;
-Settings.Stats  = [3];
+Settings.Stats  = 3;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% prep
@@ -44,7 +44,7 @@ for iQ=1:1:4;
   
   Layers = struct();
   for iLayer = 1:1:numel(Settings.Layers)
-    File = ['out/',Settings.Mode,'_',Q,'_','b',num2str(Settings.Layers(iLayer)),'.mat'];
+    File = ['out/',Settings.Mode,'_',Q,'_','b',num2str(Settings.Layers(iLayer)),'_sgolay900.mat'];
     File = load(File);
     if iLayer == 1;
       Layers = File.Results;
@@ -76,9 +76,10 @@ if strcmp(Settings.Mode,'g')
   Meta.Grid.Lon = Meta.Grid.Lon + mean(diff(Meta.ClusterParams.G.Lon))./2;  
 end
 
+if isfield(Data,'STT_k'); Data.STT_k =1./Data.STT_k; end
+
 
 disp('Data loaded')
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% plot
@@ -112,36 +113,40 @@ for iQuarter = 1:1:4;
   xi = Meta.Grid.Lon; yi = Meta.Grid.Lat;
   ToPlot = squeeze(Data.STT_A(:,:,1,Settings.Stats,iQuarter))';
   Wind   = squeeze(Data.U(    :,:,1,Settings.Stats,iQuarter))'; 
+  Lh     = squeeze(Data.STT_k(:,:,1,Settings.Stats,iQuarter))';  
   
   %smooth data
   ToPlot = smoothn2(ToPlot,Settings.SmoothSize.*3,'gauss',Settings.SmoothSize./2.355);
   Wind   = smoothn2(Wind,  Settings.SmoothSize.*3,'gauss',Settings.SmoothSize./2.355);
-  
+  Lh     = smoothn2(Lh,    Settings.SmoothSize.*3,'gauss',Settings.SmoothSize./2.355);
   
   %choose colours
   colormap(hp,cbrew('RdYlBu',16));
-  ColourRange = [0.35 1.2];
-  Units = 'Amplitude [K]';
+%   ColourRange = [0.35 1.2];
+% ColourRange = [150 350];
+%   Units = 'Amplitude [K]';
 
   
   %plot data
-  ToPlot(Wind < 20) = NaN;
+  ToPlot(Wind < 20 & Lh > 500) = NaN;
   
-  m_pcolor(xi,yi,ToPlot)
+  m_pcolor(xi,yi,ToPlot); hold on
+  colorbar
   
   %overplot wind
 %   for U=-50:10:-10
 %     [c,h] = m_contour(xi,yi,Wind,[U,U],'k-','linewi',-U./10);
 %     clabel(c,h)
 %   end  
-  for U=20;%10:10:50
-    [c,h] = m_contour(xi,yi,Wind,[U,U],'k-','linewi',U./10);
-    clabel(c,h)
-  end
+%   for U=20;%10:10:50
+%     [c,h] = m_contour(xi,yi,Wind,[U,U],'k-','linewi',U./10);
+%     clabel(c,h)
+%   end
   
   %tidy up map
-  caxis(ColourRange)
-  m_coast('color',[1,1,1].*0.75);
+%   caxis(ColourRange)
+colorbar
+  m_coast('color',[1,1,1].*0.5);
   m_grid('xtick',[],'ytick',[]);%'fontsize',10,'linestyle','--');
   
   %label

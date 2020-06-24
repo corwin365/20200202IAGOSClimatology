@@ -42,7 +42,7 @@ Settings.SA.dx = 1; %km
 Settings.SA.MaxSpaceGap = 20./Settings.SA.dx; %km
 
 %low-pass filter size
-Settings.SA.Detrend = 1000./Settings.SA.dx;
+Settings.SA.Detrend = 500./Settings.SA.dx;
 
 %minimum wavelengths
 Settings.MinLambda = 20; %km
@@ -60,12 +60,12 @@ Settings.Vars.STT.In  = {'IN','A','F1','EdgeMask'};
 Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k','STT_EdgeMask'};
 
 %s-transform - U
-Settings.Vars.STU.In  = {'IN','A','F1','EdgeMask'};
-Settings.Vars.STU.Out = {'Uprime','STU_A','STU_k','STU_EdgeMask'};
+Settings.Vars.STU.In  = {}%{'IN','A','F1','EdgeMask'};
+Settings.Vars.STU.Out = {}%{'Uprime','STU_A','STU_k','STU_EdgeMask'};
 
 %s-transform - V
-Settings.Vars.STV.In  = {'IN','A','F1','EdgeMask'};
-Settings.Vars.STV.Out = {'Vprime','STV_A','STV_k','STV_EdgeMask'};
+Settings.Vars.STV.In  = {}%{'IN','A','F1','EdgeMask'};
+Settings.Vars.STV.Out = {}%{'Vprime','STV_A','STV_k','STV_EdgeMask'};
 
 %metadata
 Settings.Vars.Meta.In  = {'air_press_AC','baro_alt_AC','zon_wind_AC','mer_wind_AC','air_temp_AC'};
@@ -87,7 +87,7 @@ if ~isodd(Settings.SA.Detrend); Settings.SA.Detrend = Settings.SA.Detrend+1; end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for iDay =1:1:numel(Settings.TimeScale)
   
-  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_v500km.mat'];
+  OutFile = [Settings.OutDir,'/IAGOS_ST_',num2str(Settings.TimeScale(iDay)),'_sgolay.mat'];
   
   if exist(OutFile); 
     %check when file was last modified 
@@ -129,7 +129,7 @@ for iDay =1:1:numel(Settings.TimeScale)
   for iFile=1:1:numel(Files);
     
     
- try
+try
       %load file, including unit conversions
       
       %in this step we interpolate to time to identify the cruises. space
@@ -210,7 +210,7 @@ for iDay =1:1:numel(Settings.TimeScale)
         
         if ~isfield(Regular,'air_temp_AC'); continue; end        
         
-        for iVar=1:1:3;
+        for iVar=1%1:1:3;
         
           try
             %get the variable
@@ -234,7 +234,9 @@ for iDay =1:1:numel(Settings.TimeScale)
           
           
           %detrend large scales
-          Var = Var-smoothdata(Var,'gaussian',Settings.SA.Detrend);
+% %           Var = Var-smoothdata(Var,'gaussian',Settings.SA.Detrend);
+          FrameSize = Settings.SA.Detrend; if ~isodd(FrameSize); FrameSize = FrameSize+1; end
+          Var = Var-sgolayfilt(double(Var),2,Settings.SA.Detrend);
           
           %remove if there are large discontinuities
           Disco = diff(find(~isnan(Var))).*Settings.SA.dx;
@@ -332,49 +334,49 @@ for iDay =1:1:numel(Settings.TimeScale)
       
       
 
-  catch; 
-    disp(['Error on ',datestr(Settings.TimeScale(iDay))])
-  end
+ catch; 
+   disp(['Error on ',datestr(Settings.TimeScale(iDay))])
+ end
   end; clear iFile
   
-  %because STU, STT and STV aren't generated every loop, it's possible
-  %that they may have ended up as shorter time series
-  %check this, and NaN-pad them if so to help logic of later routines
-  Longest = max([size(Results.STT_A,2),size(Results.STU_A,2),size(Results.STV_A,2)]);
-  
-  
-  if isfield(Results,'STU_A')
-    if size(Results.STU_A,2) < Longest;
-      Extra = NaN(size(Results.STU_A,1), ...
-                  Longest - size(Results.STU_A,2));
-      Results.STU_A        = cat(2,Results.STU_A, Extra);
-      Results.STU_k        = cat(2,Results.STU_k, Extra);
-      Results.STU_EdgeMask = cat(2,Results.STU_EdgeMask, Extra);      
-      Results.Uprime       = cat(2,Results.Uprime,Extra);
-    end
-  end
-  if isfield(Results,'STV_A')
-    if size(Results.STV_A,2) < Longest;
-      Extra = NaN(size(Results.STV_A,1), ...
-                  Longest - size(Results.STV_A,2));
-      Results.STV_A        = cat(2,Results.STV_A, Extra);
-      Results.STV_k        = cat(2,Results.STV_k, Extra);
-      Results.STV_EdgeMask = cat(2,Results.STV_EdgeMask, Extra);  
-      Results.Vprime       = cat(2,Results.Vprime,Extra);
-    end
-  end
-  if isfield(Results,'STT_A')
-    if size(Results.STT_A,2) < Longest;
-      Extra = NaN(size(Results.STT_A,1), ...
-                  Longest - size(Results.STT_A,2));
-      Results.STT_A        = cat(2,Results.STT_A, Extra);
-      Results.STT_k        = cat(2,Results.STT_k, Extra);
-      Results.STT_EdgeMask = cat(2,Results.STT_EdgeMask, Extra);  
-      Results.Tprime       = cat(2,Results.Tprime,Extra);
-    end
-  end  
-  clear Extra Longest
-  
+% % % % % %   %because STU, STT and STV aren't generated every loop, it's possible
+% % % % % %   %that they may have ended up as shorter time series
+% % % % % %   %check this, and NaN-pad them if so to help logic of later routines
+% % % % % %   Longest = max([size(Results.STT_A,2),size(Results.STU_A,2),size(Results.STV_A,2)]);
+% % % % % %   
+% % % % % %   
+% % % % % %   if isfield(Results,'STU_A')
+% % % % % %     if size(Results.STU_A,2) < Longest;
+% % % % % %       Extra = NaN(size(Results.STU_A,1), ...
+% % % % % %                   Longest - size(Results.STU_A,2));
+% % % % % %       Results.STU_A        = cat(2,Results.STU_A, Extra);
+% % % % % %       Results.STU_k        = cat(2,Results.STU_k, Extra);
+% % % % % %       Results.STU_EdgeMask = cat(2,Results.STU_EdgeMask, Extra);      
+% % % % % %       Results.Uprime       = cat(2,Results.Uprime,Extra);
+% % % % % %     end
+% % % % % %   end
+% % % % % %   if isfield(Results,'STV_A')
+% % % % % %     if size(Results.STV_A,2) < Longest;
+% % % % % %       Extra = NaN(size(Results.STV_A,1), ...
+% % % % % %                   Longest - size(Results.STV_A,2));
+% % % % % %       Results.STV_A        = cat(2,Results.STV_A, Extra);
+% % % % % %       Results.STV_k        = cat(2,Results.STV_k, Extra);
+% % % % % %       Results.STV_EdgeMask = cat(2,Results.STV_EdgeMask, Extra);  
+% % % % % %       Results.Vprime       = cat(2,Results.Vprime,Extra);
+% % % % % %     end
+% % % % % %   end
+% % % % % %   if isfield(Results,'STT_A')
+% % % % % %     if size(Results.STT_A,2) < Longest;
+% % % % % %       Extra = NaN(size(Results.STT_A,1), ...
+% % % % % %                   Longest - size(Results.STT_A,2));
+% % % % % %       Results.STT_A        = cat(2,Results.STT_A, Extra);
+% % % % % %       Results.STT_k        = cat(2,Results.STT_k, Extra);
+% % % % % %       Results.STT_EdgeMask = cat(2,Results.STT_EdgeMask, Extra);  
+% % % % % %       Results.Tprime       = cat(2,Results.Tprime,Extra);
+% % % % % %     end
+% % % % % %   end  
+% % % % % %   clear Extra Longest
+% % % % % %   
 
   %finally, store the data for the day
   if nansum(Results.Lon(:)) ~= 0;  save(OutFile,'Results','Settings'); end

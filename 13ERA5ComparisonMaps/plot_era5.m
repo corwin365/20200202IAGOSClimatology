@@ -12,7 +12,7 @@ clearvars
 
 % Settings.Era5File = 'era5_neilmap.mat';
 Settings.Era5File = 'era5_iagosmap.mat';
-Settings.MapFile = '../02Maps/out/h_DJF_b13.mat'; %mjust an example to pull the grid from
+Settings.MapFile = '../02Maps/out/h_DJF_b1_sgolay900.mat'; %mjust an example to pull the grid from
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% get data
@@ -37,10 +37,10 @@ OldMaps = NewMaps;
 for iQ = 1:1:4
   disp(iQ)
   switch iQ
-    case 1; InRange = find(mm ==  9 | mm == 10 | mm == 11); Map = load(['../02Maps/out/h_SON_b13.mat']);
-    case 2; InRange = find(mm == 12 | mm ==  1 | mm ==  2); Map = load(['../02Maps/out/h_DJF_b13.mat']);
-    case 3; InRange = find(mm ==  3 | mm ==  4 | mm ==  5); Map = load(['../02Maps/out/h_MAM_b13.mat']);
-    case 4; InRange = find(mm ==  6 | mm ==  7 | mm ==  8); Map = load(['../02Maps/out/h_JJA_b13.mat']);
+    case 1; InRange = find(mm ==  9 | mm == 10 | mm == 11); Map = load(['../02Maps/out/h_SON_b1_sgolay900.mat']);
+    case 2; InRange = find(mm == 12 | mm ==  1 | mm ==  2); Map = load(['../02Maps/out/h_DJF_b1_sgolay900.mat']);
+    case 3; InRange = find(mm ==  3 | mm ==  4 | mm ==  5); Map = load(['../02Maps/out/h_MAM_b1_sgolay900.mat']);
+    case 4; InRange = find(mm ==  6 | mm ==  7 | mm ==  8); Map = load(['../02Maps/out/h_JJA_b1_sgolay900.mat']);
   end
   
   for iVar=1:1:3;

@@ -18,7 +18,7 @@ TimeWindow = 31; %days
 
 %what data do we want?
 Range = 500; %km
-Generate = 0; %only generate new data if needed, it is *very* slow
+Generate = 1; %only generate new data if needed, it is *very* slow
 
 %baseline time series
 Baseline = 1;
@@ -64,7 +64,7 @@ Names{end+1} = 'Mid Greenland';   Lons(end+1) =  -42; Lats(end+1) = 72; Oro(end+
 
 if Generate == 1;
   
-  for iSeries = 20:1:numel(Names);
+  for iSeries = 1:1:numel(Names);
     disp(['Processing box over ',Names{iSeries}])
     
     %generate the time series

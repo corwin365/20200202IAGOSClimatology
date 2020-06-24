@@ -20,7 +20,7 @@ Settings.RelPrsScale = -425:500:300; %i.e. keep the code but run as fast as poss
 Settings.LatScale    = -40:4:80;
 Settings.LonScale    = -180:4:180; %used for weighting, not in final product
 Settings.Vars        = {'U','STT_A'};%,'STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
-Settings.OutFile     = 'zm_final_lonweighted.mat';
+Settings.OutFile     = 'zm_final_lonweighted_sg900.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -54,7 +54,7 @@ for iDay=1:1:numel(Settings.TimeScale)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   [yy,~,~] = datevec(Settings.TimeScale(iDay));
-  File = [Settings.DataDir,'/merged_',num2str(yy),'_v7.mat'];
+  File = [Settings.DataDir,'/merged_',num2str(yy),'_sgolay900.mat'];
   if ~strcmp(File,Store.Name)
     Store = load(File); Store = Store.Results;
     Store.Name = File;
