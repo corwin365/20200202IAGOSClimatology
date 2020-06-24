@@ -12,8 +12,8 @@ ToCall.ProgName = 'combine_data_into_annual_files';
 %directory it will run in
 ToCall.WorkingDirectory = '/home/f/cw785/Matlab/20200202IAGOSClimatology/01ProcessData';
 
-Queue = 'batch-devel'  ;%options are batch-short, batch-sky, batch-all, batch-devel
-RunTime = 360; %this will be overriden with 15 min if 'batch-devel' queue is used, and only one job fired
+Queue = 'batch-short'  ;%options are batch-short, batch-sky, batch-all, batch-devel
+RunTime = 240; %this will be overriden with 15 min if 'batch-devel' queue is used, and only one job fired
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,11 +29,11 @@ Calls = {};
 JobNames = {};
 
 Count = 0;
-for YEAR = 1994:1:2020
+for YEAR = 1994:2020
     Count = Count+1;
 
     ThisCall = ['YEAR=',num2str(YEAR),';', ...
-               'iagos_cruises_st_fixedDX;add_tropopause;'];
+               'iagos_cruises_st_fixedDX_sgolay;add_tropopause;'];
 
     JobNames{Count} = ['IAGOS_',sprintf('%04d',YEAR)];
     Calls{Count} = ThisCall;

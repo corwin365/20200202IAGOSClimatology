@@ -18,7 +18,7 @@ TimeWindow = 31; %days
 
 %what data do we want?
 Range = 500; %km
-Generate = 1; %only generate new data if needed, it is *very* slow
+Generate = 0; %only generate new data if needed, it is *very* slow
 
 %baseline time series
 Baseline = 1;
@@ -120,18 +120,18 @@ for iM=1:1:numel(Names)
   Metric1(iM) = cc(2);
 end
 
-%metric two: rms difference
-Metric2 = NaN(numel(Names),1);
-for iM=1:1:numel(Names)
-  s1 = Series(Baseline,:,2);
-  s2 = Series(iM,:,2);
-  Good = find(~isnan(s1+s2));
-  Metric2(iM) = sqrt(sum((s1(Good)-s2(Good)).^2));
-end
+% % %metric two: rms difference
+% % Metric2 = NaN(numel(Names),1);
+% % for iM=1:1:numel(Names)
+% %   s1 = Series(Baseline,:,2);
+% %   s2 = Series(iM,:,2);
+% %   Good = find(~isnan(s1+s2));
+% %   Metric2(iM) = sqrt(sum((s1(Good)-s2(Good)).^2));
+% % end
 
 
 %combine
-Sigma = Metric1 + 1-(Metric2./nanmax(Metric2));
+Sigma = Metric1;% + 0.5.*(1-(Metric2./nanmax(Metric2)));
 [~,Order] = sort(Sigma,'descend');
 
 clear Baseline Metric1 iM s1 s2 Good cc Metric2 Sigma
@@ -233,12 +233,12 @@ for iSeries = 1:1:numel(Names);
   plot([0,366],[1,1].*SeriesMedian,'color',[1,1,1].*0.3)
 
  
-  %mountains nearby?
-  if Oro(iSeries) == 1;
-    text(330,YRange(1)+0.85*range(YRange),'\it\Lambda','fontweight','bold','fontsize',24);
-  elseif Oro(iSeries) == 0.5
-    text(330,YRange(1)+0.87*range(YRange),'\it\Lambda','fontsize',16);
-  end
+% %   %mountains nearby?
+% %   if Oro(iSeries) == 1;
+% %     text(330,YRange(1)+0.85*range(YRange),'\it\Lambda','fontweight','bold','fontsize',24);
+% %   elseif Oro(iSeries) == 0.5
+% %     text(330,YRange(1)+0.87*range(YRange),'\it\Lambda','fontsize',16);
+% %   end
    
     
   %names

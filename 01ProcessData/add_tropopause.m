@@ -14,7 +14,7 @@ clearvars -except YEAR
 %% settings
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-TPSettings.DataDir.Trop  = [LocalDataDir,'/corwin/'];%'/beegfs/scratch/user/f/cw785/Data';
+TPSettings.DataDir.Trop  = '/beegfs/scratch/user/f/cw785/Data';
 TPSettings.DataDir.IAGOS =  [LocalDataDir,'/corwin/IAGOS_st/'];
 TPSettings.TimeScale  = datenum(YEAR,1,1):1:datenum(YEAR,12,31);
 
@@ -77,7 +77,7 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   
   
   %load data
-  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*vTEST*']);
+  DayFile = wildcardsearch(TPSettings.DataDir.IAGOS,['*',num2str(TPSettings.TimeScale(iDay)),'*_sgolay*']);
   if numel(DayFile) == 0; clear DayFile; continue; end
   Data = load(DayFile{1});
 
@@ -182,12 +182,14 @@ for iDay=1:1:numel(TPSettings.TimeScale)
   %(the steps in this section above were produced by examining stops here,
   %so this should not actually fire unless more data is acquired with more weird foibles)
   if size(Data.Results.Lat,2) > 10000;
-    Fields = fieldnames(Data.Results);
-    for iVar=1:1:numel(Fields)
-      V = Data.Results.(Fields{iVar});
-      V = V(:,1:9999);
-      Data.Results.(Fields{iVar}) = V;
-    end; clear BadLambda Fields iVar V
+    stop
+% % % % %     disp('Series too long!')
+% % % % %     Fields = fieldnames(Data.Results);
+% % % % %     for iVar=1:1:numel(Fields)
+% % % % %       V = Data.Results.(Fields{iVar});
+% % % % %       V = V(:,1:9999);
+% % % % %       Data.Results.(Fields{iVar}) = V;
+% % % % %     end; clear BadLambda Fields iVar V
   end
 
   Settings = Data.Settings;

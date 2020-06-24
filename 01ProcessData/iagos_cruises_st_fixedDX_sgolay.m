@@ -42,7 +42,7 @@ Settings.SA.dx = 1; %km
 Settings.SA.MaxSpaceGap = 20./Settings.SA.dx; %km
 
 %low-pass filter size
-Settings.SA.Detrend = 500./Settings.SA.dx;
+Settings.SA.Detrend = 900./Settings.SA.dx;
 
 %minimum wavelengths
 Settings.MinLambda = 20; %km
@@ -60,12 +60,12 @@ Settings.Vars.STT.In  = {'IN','A','F1','EdgeMask'};
 Settings.Vars.STT.Out = {'Tprime','STT_A','STT_k','STT_EdgeMask'};
 
 %s-transform - U
-Settings.Vars.STU.In  = {}%{'IN','A','F1','EdgeMask'};
-Settings.Vars.STU.Out = {}%{'Uprime','STU_A','STU_k','STU_EdgeMask'};
+Settings.Vars.STU.In  = {};%{'IN','A','F1','EdgeMask'};
+Settings.Vars.STU.Out = {};%{'Uprime','STU_A','STU_k','STU_EdgeMask'};
 
 %s-transform - V
-Settings.Vars.STV.In  = {}%{'IN','A','F1','EdgeMask'};
-Settings.Vars.STV.Out = {}%{'Vprime','STV_A','STV_k','STV_EdgeMask'};
+Settings.Vars.STV.In  = {};%{'IN','A','F1','EdgeMask'};
+Settings.Vars.STV.Out = {};%{'Vprime','STV_A','STV_k','STV_EdgeMask'};
 
 %metadata
 Settings.Vars.Meta.In  = {'air_press_AC','baro_alt_AC','zon_wind_AC','mer_wind_AC','air_temp_AC'};

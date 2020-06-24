@@ -1,13 +1,13 @@
 clearvars
 
 %parameters to vary
-Feed.Methods = {'g','h'};
+Feed.Methods = {'h'};%{'g','h'};
 
 Count = 1;
-for iDays=1:1:4;
-  for iMethod =1:1:numel(Feed.Methods)
-    for iBand=1:1:10
 
+for iMethod =1:1:numel(Feed.Methods)
+  for iBand=1%[1,5,7,31:1:35]
+    for iDays=1:1:4;
       METHOD  = Feed.Methods{iMethod};
       PRSBAND = iBand;
       
@@ -18,14 +18,14 @@ for iDays=1:1:4;
         case 4; DAYS = 'SON';
       end
       
-      OUTFILE = [METHOD,'_',DAYS,'_band',num2str(iBand)];
+      OUTFILE = [METHOD,'_',DAYS,'_b',num2str(iBand),'_sgolay900'];
       
       
       JobName = OUTFILE;
       
       
       Text1 = ['#!/bin/bash\n## Name of the job\n#SBATCH --job-name=',JobName,'\n## Account to charge to\n#SBATCH --account=free\n\n'];
-      Text2 = ['\n#SBATCH --time=360:00\n## Number of node required and tasks per node\n'];
+      Text2 = ['\n#SBATCH --time=240:00\n## Number of node required and tasks per node\n'];
       Text3 = ['#SBATCH --nodes=1\n#SBATCH --ntasks-per-node=16\n\n#SBATCH --output=log.%%j.out\n#SBATCH --error=log.%%j.err\n#SBATCH --partition=batch-short'];
       
       
@@ -55,7 +55,7 @@ end
 fid = fopen(['fire_wrappers.sh'],'wt');
 %  for i=1:1:Count-1;fprintf(fid,['sbatch --begin=now+7hour job',sprintf('%04d',i),'.txt\n']);end
 for i=1:1:Count-1;
-  fprintf(fid,['sbatch job',sprintf('%04d',i),'_wrapper.txt\n']);
+  fprintf(fid,['sbatch  job',sprintf('%04d',i),'_wrapper.txt\n']);
   fprintf(fid,['rm job',sprintf('%04d',i),'_wrapper.txt\n']);
 end
 fprintf(fid,['rm fire_wrappers.sh\n']);

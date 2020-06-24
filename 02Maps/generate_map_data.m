@@ -53,7 +53,6 @@ end; Settings.PrsBands = {Settings.PrsBands}; clear PRSBAND
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual/'];
-%  Settings.OutFile = 'mapdata_djf_h5000.mat'
 
 %variables to process
 Settings.Vars = {'STT_A','STT_k','T','U','V','TropPres'};
@@ -62,8 +61,8 @@ Settings.Vars = {'STT_A','STT_k','T','U','V','TropPres'};
 Settings.Years = 1994:1:2020;
 
 %final grid size to output the results on
-Settings.Grid.Lon = -180:1:180;
-Settings.Grid.Lat = -90:1:90;
+Settings.Grid.Lon = -180:.5:180;
+Settings.Grid.Lat = -90:.5:90;
 
 %statistics to compute
 Settings.Stats = {'mean','stdev','median','gini'};
@@ -123,7 +122,7 @@ textprogressbar('Loading data ')
 for iYear = 1:1:numel(Settings.Years);
   
   %load data for the year
-  YearFile = [Settings.DataDir,'/merged_',num2str(Settings.Years(iYear)),'_v7.mat'];
+  YearFile = [Settings.DataDir,'/merged_',num2str(Settings.Years(iYear)),'_sgolay.mat'];
   if ~exist(YearFile,'file'); continue; end
   YearData = load(YearFile); YearData = YearData.Results;
   
@@ -132,7 +131,7 @@ for iYear = 1:1:numel(Settings.Years);
   Select.NonZero  = find((YearData.Lon + 1000.*YearData.Lat) ~= 0); %lat and lon values are not both zero
   Select.NonNaN   = find(~isnan(YearData.Lon + YearData.Lat)); %lat and lon values are not nans
   Select.GWs      = find(~isnan(YearData.STT_A)); %gravity waves were measured
-  Select.Lambda   = find(1./YearData.STT_k > 25); %gravity waves were measured  
+  Select.Lambda   = find(1./YearData.STT_k > 25); %with wavelengths longer than 25km
   
   %combine the selections into one call
   Selected = Select.InPeriod;

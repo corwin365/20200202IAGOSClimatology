@@ -13,7 +13,7 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %file handling
-Settings.InFile = 'metadata_all_v2.mat';
+Settings.InFile = 'metadata_all_sgolay900.mat';
 
 %height regions (absolute pressure)
 Settings.Region.Bot = [1000,225];

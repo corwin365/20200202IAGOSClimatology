@@ -50,14 +50,14 @@ for iYear=1:1:numel(AnnSettings.Years)
     DayNumber = datenum(AnnSettings.Years(iYear),1,iDay);
     
     %load the file
-    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_vTEST.mat'];
+    FileName = [AnnSettings.InDir,'/IAGOS_ST_',num2str(DayNumber),'_sgolay.mat'];
     clear DayNumber
     if ~exist(FileName,'file'); clear FileName; continue; end
     
     DataThisYear = 1;
     Data = load(FileName);
     
-    Data.Results = rmfield(Data.Results,{'Uprime','STU_A','STU_k','Vprime','STV_A','STV_k'});
+%      Data.Results = rmfield(Data.Results,{'Uprime','STU_A','STU_k','Vprime','STV_A','STV_k'});
     
     %get list of variables
     Vars = fieldnames(Data.Results);
@@ -122,7 +122,7 @@ for iYear=1:1:numel(AnnSettings.Years)
 
   
   %save the big annual pile of data
-  save([AnnSettings.OutDir,'/merged_',num2str(AnnSettings.Years(iYear)),'_vTEST.mat'], ...
+  save([AnnSettings.OutDir,'/merged_',num2str(AnnSettings.Years(iYear)),'_sgolay.mat'], ...
        'Results','Settings');
 
      

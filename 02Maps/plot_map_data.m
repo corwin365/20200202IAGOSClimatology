@@ -17,21 +17,21 @@
 Settings.Mode = 'h';
 
 %smoothing of final plot
-Settings.SmoothSize = [1,1].*3; %FWHM of Gaussian smoother
+Settings.SmoothSize = [1,1].*5; %FWHM of Gaussian smoother
 % 
-% % %plot rows. one row for each combination of the below
-% %   %%strings, as a cell struct
-% % Settings.Vars    = {'STT_A','STT_k';};
-% %   %%indices in the order specified in file Settings struct 
-% % Settings.Layers =  1;
-% % Settings.Stats  = [3,4];
-
 %plot rows. one row for each combination of the below
   %%strings, as a cell struct
-Settings.Vars    = {'T','U','V'};
+Settings.Vars    = {'STT_A','STT_k';};
   %%indices in the order specified in file Settings struct 
-Settings.Layers = 1;
-Settings.Stats  = [3];
+Settings.Layers =  1;
+Settings.Stats  = [3,4];
+
+% % %plot rows. one row for each combination of the below
+% %   %%strings, as a cell struct
+% % Settings.Vars    = {'T','U','V'};
+% %   %%indices in the order specified in file Settings struct 
+% % Settings.Layers = 1;
+% % Settings.Stats  = [3];
 
 
 % %plot rows. one row for each combination of the below
