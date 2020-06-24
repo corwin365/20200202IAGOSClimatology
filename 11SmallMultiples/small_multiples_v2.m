@@ -18,7 +18,7 @@ TimeWindow = 31; %days
 
 %what data do we want?
 Range = 500; %km
-Generate = 1; %only generate new data if needed, it is *very* slow
+Generate = 0; %only generate new data if needed, it is *very* slow
 
 %baseline time series
 Baseline = 1;
@@ -33,7 +33,6 @@ Names{end+1} = 'Newfoundland';    Lons(end+1) =  -60; Lats(end+1) = 48; Oro(end+
 Names{end+1} = 'Rockies';         Lons(end+1) = -110; Lats(end+1) = 40; Oro(end+1) = 1;
 Names{end+1} = 'Baffin Island';   Lons(end+1) =  -69; Lats(end+1) = 68; Oro(end+1) = 1;
 Names{end+1} = 'Canadian Plains'; Lons(end+1) = -110; Lats(end+1) = 61; Oro(end+1) = 0;
-Names{end+1} = 'Hudson Bay';      Lons(end+1) =  -90; Lats(end+1) = 59; Oro(end+1) = 0;
 Names{end+1} = 'Quebec';          Lons(end+1) =  -73; Lats(end+1) = 54; Oro(end+1) = 0.5;
 Names{end+1} = 'South Greenland'; Lons(end+1) =  -47; Lats(end+1) = 64; Oro(end+1) = 1;
 Names{end+1} = 'Iceland';         Lons(end+1) =  -18; Lats(end+1) = 65; Oro(end+1) = 1;
@@ -43,14 +42,11 @@ Names{end+1} = 'Altai';           Lons(end+1) =   90; Lats(end+1) = 52; Oro(end+
 Names{end+1} = 'Urals';           Lons(end+1) =   60; Lats(end+1) = 62; Oro(end+1) = 1;
 Names{end+1} = 'Georgia,US';      Lons(end+1) =  -83; Lats(end+1) = 32; Oro(end+1) = 0.5;
 Names{end+1} = 'Great Lakes';     Lons(end+1) =  -83; Lats(end+1) = 46.5; Oro(end+1) = 0;
-Names{end+1} = 'Ukraine';         Lons(end+1) =   35; Lats(end+1) = 49; Oro(end+1) = 0;
 Names{end+1} = 'Iran';            Lons(end+1) =   49; Lats(end+1) = 35; Oro(end+1) = 1;
 Names{end+1} = 'Siberia';         Lons(end+1) =  100; Lats(end+1) = 65; Oro(end+1) = 1;
 Names{end+1} = 'East China';      Lons(end+1) =  117; Lats(end+1) = 38; Oro(end+1) = 0;
 Names{end+1} = 'CMR Border';      Lons(end+1) =  120; Lats(end+1) = 55; Oro(end+1) = 1;
 Names{end+1} = 'UK';              Lons(end+1) =   -2; Lats(end+1) = 54; Oro(end+1) = 1;
-Names{end+1} = 'Mid Greenland';   Lons(end+1) =  -42; Lats(end+1) = 72; Oro(end+1) = 1;
-
 
 % % % South Scandinavia  9  56
 % % % East Med  25  35
@@ -146,6 +142,7 @@ Lons = Lons(Order);
 Oro  = Oro(Order);
 Series = Series(Order,:,:);
 Names = Names(Order);
+stop
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% plot the individual time series

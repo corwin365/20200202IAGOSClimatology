@@ -68,10 +68,8 @@ Lons = Lons(Order);
 Lats = Lats(Order);
 
 
-%place marker and draw 500km circle
 for iMarker=1:1:numel(Lats)
   m_text(Lons(iMarker),Lats(iMarker),Letters(iMarker),'fontsize',24,'fontweight','bold','color','k','horizontalalignment','center','verticalalignment','middle')
-  m_range_ring(Lons(iMarker),Lats(iMarker),500,'color','k','linewi',2)
 end; clear iMarker
 
 

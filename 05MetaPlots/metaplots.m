@@ -14,7 +14,7 @@ clearvars
 
 %file handling
 Settings.DataDir = [LocalDataDir,'/corwin/IAGOS_annual'];
-Settings.OutFile = 'metadata_all_v7.mat';
+Settings.OutFile = 'metadata_all_sgolay900.mat';
 
 
 %map data
@@ -57,7 +57,7 @@ for iMonth= 1:1:numel(mmi)
   end
   
   %get data
-  File = [Settings.DataDir,'/merged_',num2str(yyi(iMonth)),'_v7.mat'];
+  File = [Settings.DataDir,'/merged_',num2str(yyi(iMonth)),'_sgolay900.mat'];
   if strcmp(AllData.Name,File) ~= 1;
     %load the data
     if ~exist(File,'file'); clear File; continue; end
