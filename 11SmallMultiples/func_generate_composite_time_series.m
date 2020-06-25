@@ -4,6 +4,8 @@ function func_generate_time_series(FILENAME, LON, LAT, RANGE, PRSRANGE,TIMESCALE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% generate time series of GW properties measured by IAGOS
 %
+%Data are returned as an ANNUAL CYCLE
+%
 %Corwin Wright, c.wright@bath.ac.uk, 2020/Jun/07
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -28,24 +28,24 @@ SmoothSize = 7;
 
 %individual series to generate
 Names = {}; Lons = []; Lats = []; Oro = [];
-Names{end+1} = 'Rockies';           Lons(end+1) = -110; Lats(end+1) = 40; Oro(end+1) = 1;
-Names{end+1} = 'Iceland';           Lons(end+1) =  -18; Lats(end+1) = 65; Oro(end+1) = 1;
-Names{end+1} = 'Newfoundland';      Lons(end+1) =  -60; Lats(end+1) = 48; Oro(end+1) = 0;
-Names{end+1} = 'Greenland';         Lons(end+1) =  -47; Lats(end+1) = 64; Oro(end+1) = 1;
-Names{end+1} = 'UK';                Lons(end+1) =   -2; Lats(end+1) = 54; Oro(end+1) = 1;
-Names{end+1} = 'Iran';              Lons(end+1) =   49; Lats(end+1) = 35; Oro(end+1) = 1;
-Names{end+1} = 'Altai';             Lons(end+1) =   90; Lats(end+1) = 52; Oro(end+1) = 1;
-Names{end+1} = 'Sikhote Alin';      Lons(end+1) =  138; Lats(end+1) = 48; Oro(end+1) = 1;
-Names{end+1} = 'Urals';             Lons(end+1) =   65; Lats(end+1) = 62; Oro(end+1) = 1;
-Names{end+1} = 'Alps/Balkans';      Lons(end+1) =   15; Lats(end+1) = 46; Oro(end+1) = 1;
-Names{end+1} = 'Canadian Plains';   Lons(end+1) = -110; Lats(end+1) = 61; Oro(end+1) = 0;
-Names{end+1} = 'Siberia';           Lons(end+1) =  100; Lats(end+1) = 65; Oro(end+1) = 1;
-Names{end+1} = 'Great Lakes';       Lons(end+1) =  -83; Lats(end+1) = 46.5; Oro(end+1) = 0;
-Names{end+1} = 'North Atlantic';    Lons(end+1) =  -30; Lats(end+1) = 52; Oro(end+1) = 0;
-Names{end+1} = 'Azores';            Lons(end+1) =  -25; Lats(end+1) = 37; Oro(end+1) = 0.5;
-Names{end+1} = 'CMR Border';        Lons(end+1) =  120; Lats(end+1) = 55; Oro(end+1) = 1;
-Names{end+1} = 'West Russia';       Lons(end+1) =   40; Lats(end+1) = 55; Oro(end+1) = 1;
-Names{end+1} = 'Afghanistan';       Lons(end+1) =   69; Lats(end+1) = 38; Oro(end+1) = 1;
+Names{end+1} = 'Rockies';           Lons(end+1) = -110; Lats(end+1) = 40; 
+Names{end+1} = 'Iceland';           Lons(end+1) =  -18; Lats(end+1) = 65; 
+Names{end+1} = 'Newfoundland';      Lons(end+1) =  -60; Lats(end+1) = 48; 
+Names{end+1} = 'Greenland';         Lons(end+1) =  -47; Lats(end+1) = 64;
+Names{end+1} = 'UK';                Lons(end+1) =   -2; Lats(end+1) = 54; 
+Names{end+1} = 'Iran';              Lons(end+1) =   49; Lats(end+1) = 35;
+Names{end+1} = 'Altai';             Lons(end+1) =   90; Lats(end+1) = 52;
+Names{end+1} = 'Sikhote Alin';      Lons(end+1) =  138; Lats(end+1) = 48;
+Names{end+1} = 'Urals';             Lons(end+1) =   65; Lats(end+1) = 62;
+Names{end+1} = 'Alps/Balkans';      Lons(end+1) =   15; Lats(end+1) = 46;
+Names{end+1} = 'Canadian Plains';   Lons(end+1) = -110; Lats(end+1) = 61;
+Names{end+1} = 'Siberia';           Lons(end+1) =  100; Lats(end+1) = 65;
+Names{end+1} = 'Great Lakes';       Lons(end+1) =  -83; Lats(end+1) = 46.5;
+Names{end+1} = 'North Atlantic';    Lons(end+1) =  -30; Lats(end+1) = 52;
+Names{end+1} = 'Azores';            Lons(end+1) =  -25; Lats(end+1) = 37;
+Names{end+1} = 'CMR Border';        Lons(end+1) =  120; Lats(end+1) = 55;
+Names{end+1} = 'West Russia';       Lons(end+1) =   40; Lats(end+1) = 55; 
+Names{end+1} = 'Afghanistan';       Lons(end+1) =   69; Lats(end+1) = 38;
 
 % % % South Scandinavia  9  56
 % % % East Med  25  35
@@ -138,7 +138,6 @@ clear Baseline Metric1 iM s1 s2 Good cc Metric2 Sigma
 
 Lats = Lats(Order);
 Lons = Lons(Order);
-Oro  = Oro(Order);
 Series = Series(Order,:,:);
 Names = Names(Order);
 
@@ -233,13 +232,6 @@ for iSeries = 1:1:numel(Names);
   plot([0,366],[1,1].*SeriesMedian,'color',[1,1,1].*0.3)
 
  
-% %   %mountains nearby?
-% %   if Oro(iSeries) == 1;
-% %     text(330,YRange(1)+0.85*range(YRange),'\it\Lambda','fontweight','bold','fontsize',24);
-% %   elseif Oro(iSeries) == 0.5
-% %     text(330,YRange(1)+0.87*range(YRange),'\it\Lambda','fontsize',16);
-% %   end
-   
     
   %names
   if nanmean(ThisSeries(1:90)) > SeriesMedian
@@ -256,3 +248,57 @@ for iSeries = 1:1:numel(Names);
   %tidy and loop
   clearvars -except Lats Lons Oro Names Series Letters SmoothSize subplot
 end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% additional plot: absolute range
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figure
+clf
+axis([0.5 18.5 0.05 1.6])
+hold on; box on; grid off;
+
+
+%horizontal lines
+for iY=0.2:0.2:1.4; plot([0.5,24.5],[1,1].*iY,'--','color',[1,1,1].*0.8); end
+set(gca,'ytick',0.2:0.2:1.4)
+
+for iSeries = 1:1:18;
+
+
+  %background line
+  plot([1,1].*iSeries,[0 2.2],'-','color',[1,1,1].*0.8)
+  
+  %get data
+  Data = smoothn(squeeze(Series(iSeries,:,2)),[SmoothSize,1]);
+  Percentiles = prctile(Data(~isnan(Data)),[0,2.5,18,50,82,97.5,100]);
+
+  %plot stats
+  %%%%%%%%%%%%%%
+%   %min and max
+%   plot(iSeries,Percentiles(1),'r.','markersize',12,'linewi',2)
+%   plot(iSeries,Percentiles(7),'b.','markersize',12,'linewi',2)
+  
+  %2 st dev
+  plot(0.2.*[-1,1] + iSeries,[1,1].*Percentiles(2),'r-','linewi',2)  
+  plot(0.2.*[-1,1] + iSeries,[1,1].*Percentiles(6),'b-','linewi',2)    
+  
+  %-1 st dev to +1 stdev
+  patch(iSeries+[-1,1,1,-1,-1].*0.2,Percentiles([3,3,4,4,3]),[255,204,204]./255,'edgecolor','r')
+  patch(iSeries+[-1,1,1,-1,-1].*0.2,Percentiles([4,4,5,5,4]),[204,229,255]./255,'edgecolor','b')
+  
+  %median
+  plot(0.2.*[-1,1] + iSeries,[1,1].*Percentiles(4),'k-','linewi',2)  
+  
+  %vertical joins
+  plot([1,1].*iSeries,Percentiles([2,3]),'r-')
+  plot([1,1].*iSeries,Percentiles([5,6]),'b-')  
+  
+end
+
+set(gca,'xtick',1:18,'xticklabel',{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R'})
+ylabel('Amplitude [K]')
+set(gca,'yaxislocation','right')
+
