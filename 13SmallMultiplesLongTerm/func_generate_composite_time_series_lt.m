@@ -135,4 +135,52 @@ for iVar=1:1:numel(Settings.Vars)
   clear R Var iTime InTimeRange iMetric
   
 end; clear iVar
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% also generate some surface time series over the same area and timescale
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+for iVar=1:1:3;
+  
+  switch iVar
+    case 1; InFile = [LocalDataDir,'/Miscellany/era5_10m_wind.mat'];         VarName = 'u10';
+    case 2; InFile = [LocalDataDir,'/Miscellany/era5_surface_pressure.mat']; VarName = 'sp';
+    case 3; InFile = [LocalDataDir,'/Miscellany/era5_total_precip.mat'];     VarName = 'tp';
+  end
+  
+  %load data
+  Data = load(InFile);
+  Data = Data.(VarName);
+  
+  %find all points in range
+  [xi,yi] = meshgrid(Data.lon,Data.lat);
+  sz = size(xi);
+  xi = xi(:); yi = yi(:);
+  dx = nph_haversine([xi,yi],repmat([LON;LAT],1,numel(xi))');
+  InRange = find(dx < Settings.Range);
+  
+  %make a single time series for the region
+  TimeSeries = NaN(numel(Data.time),1);
+  for iTime=1:1:numel(TimeSeries);
+    Map = Data.(VarName);
+    Map = Map(:,:,iTime);
+    Map = Map(InRange);
+    TimeSeries(iTime) = nanmean(Map(:));
+  end
+  
+  %interpolate onto our amplitude time series
+  %since both datasets are ~ monthly, this should be fine
+  Results.(VarName) = interp1(Data.time,TimeSeries,TIMESCALE);
+  
+
+  
+  
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% done
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 save(Settings.OutFile,'Settings','Results')
