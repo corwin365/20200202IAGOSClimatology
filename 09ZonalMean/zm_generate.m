@@ -18,7 +18,7 @@ Settings.TimeScale   = datenum(1994,8,1):1:datenum(2019,12,31);
 Settings.AbsPrsScale = 165:10:350;
 Settings.RelPrsScale = -425:500:300; %i.e. keep the code but run as fast as possible
 Settings.LatScale    = -40:4:80;
-Settings.Vars        = {'U','STT_A'};%,'STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
+Settings.Vars        = {'STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
 Settings.OutFile     = 'zm_final.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

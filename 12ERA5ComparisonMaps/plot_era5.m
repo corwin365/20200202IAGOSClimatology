@@ -11,7 +11,7 @@ clearvars
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Settings.Era5File = 'era5_neilmap.mat';
-Settings.Era5File = 'era5_iagosmap.mat';
+Settings.Era5File = 'era5_250_200.mat';
 Settings.MapFile = '../02Maps/out/h_DJF_b1_sgolay900.mat'; %mjust an example to pull the grid from
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

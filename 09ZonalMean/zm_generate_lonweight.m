@@ -15,12 +15,12 @@ clearvars
 
 Settings.DataDir     = [LocalDataDir,'/corwin/IAGOS_annual'];
 Settings.TimeScale   = datenum(1994,8,1):1:datenum(2019,12,31);
-Settings.AbsPrsScale = 165:10:350;
-Settings.RelPrsScale = -425:500:300; %i.e. keep the code but run as fast as possible
+Settings.AbsPrsScale = 150:20:350;
+Settings.RelPrsScale = -300:20:300; 
 Settings.LatScale    = -40:4:80;
-Settings.LonScale    = -180:4:180; %used for weighting, not in final product
-Settings.Vars        = {'U','STT_A'};%,'STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
-Settings.OutFile     = 'zm_final_lonweighted_sg900.mat';
+Settings.LonScale    = -180:30:180; %used for weighting, not in final product
+Settings.Vars        = {'U','STT_A','STT_k'};%'T','STU_A','STU_k','STV_A','STV_k'};
+Settings.OutFile     = 'zm_final_lonweighted.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% create results arrays
@@ -48,7 +48,7 @@ Results.TP  = NaN(numel(Settings.TimeScale),numel(Settings.LatScale));
 Store.Name = '';
 textprogressbar('Gridding data ')
 for iDay=1:1:numel(Settings.TimeScale)
-  
+%   disp(iDay)
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %get data
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,11 +65,19 @@ for iDay=1:1:numel(Settings.TimeScale)
   if numel(OnThisDay) == 0; clear OnThisDay;continue; end
   
   ThisDay = reduce_struct(Store,OnThisDay,'Name');
-  clear OnThisDay
+  clear OnThisDay 
+  
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %% grid data
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  %drop bad data
+  Good = find(1./ThisDay.STT_k > 25 ...
+            & ~isnan(ThisDay.STT_A + ThisDay.Lon + ThisDay.Lat) ...
+            & (ThisDay.Lon + 1000.*ThisDay.Lat) ~= 0);
+  ThisDay = reduce_struct(ThisDay,Good,{'Name'});
+  clear Good
   
   %get metadata needed
   Lat = ThisDay.Lat;
@@ -87,8 +95,8 @@ for iDay=1:1:numel(Settings.TimeScale)
     Results.AbsN(iVar,iDay,:,:) = bin2mat(Lat,AbsPrs,~isnan(ThisDay.(Settings.Vars{iVar})),yi,zi,'@nansum')';
 
     [xi,yi,zi] = meshgrid(Settings.LonScale,Settings.LatScale,Settings.RelPrsScale);
-    Results.FRel( iVar,iDay,:,:) = squeeze(nanmean(bin2matN(3,Lon,Lat,RelPrs,ThisDay.(Settings.Vars{iVar}), xi,yi,zi,'@nanmean'),2));    
-    
+    Results.Rel( iVar,iDay,:,:) = squeeze(nanmean(bin2matN(3,Lon,Lat,RelPrs,ThisDay.(Settings.Vars{iVar}), xi,yi,zi,'@nanmean'),2));    
+
     [yi,zi] = meshgrid(Settings.LatScale,Settings.RelPrsScale);    
     Results.RelN(iVar,iDay,:,:) = bin2mat(Lat,RelPrs,~isnan(ThisDay.(Settings.Vars{iVar})),yi,zi,'@nansum')';
 
