@@ -12,7 +12,7 @@ clearvars
 
 % Settings.Era5File = 'era5_neilmap.mat';
 Settings.Era5File = 'era5_250_200.mat';
-Settings.MapFile = '../02Maps/out/h_DJF_b1_sgolay900.mat'; %mjust an example to pull the grid from
+Settings.MapFile = '../02Maps/out/h_DJF_b33_sgolay900.mat'; %mjust an example to pull the grid from
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% get data
@@ -37,10 +37,10 @@ OldMaps = NewMaps;
 for iQ = 1:1:4
   disp(iQ)
   switch iQ
-    case 1; InRange = find(mm ==  9 | mm == 10 | mm == 11); Map = load(['../02Maps/out/h_SON_b1_sgolay900.mat']);
-    case 2; InRange = find(mm == 12 | mm ==  1 | mm ==  2); Map = load(['../02Maps/out/h_DJF_b1_sgolay900.mat']);
-    case 3; InRange = find(mm ==  3 | mm ==  4 | mm ==  5); Map = load(['../02Maps/out/h_MAM_b1_sgolay900.mat']);
-    case 4; InRange = find(mm ==  6 | mm ==  7 | mm ==  8); Map = load(['../02Maps/out/h_JJA_b1_sgolay900.mat']);
+    case 1; InRange = find(mm ==  9 | mm == 10 | mm == 11); Map = load(['../02Maps/out/h_SON_b33_sgolay900.mat']);
+    case 2; InRange = find(mm == 12 | mm ==  1 | mm ==  2); Map = load(['../02Maps/out/h_DJF_b33_sgolay900.mat']);
+    case 3; InRange = find(mm ==  3 | mm ==  4 | mm ==  5); Map = load(['../02Maps/out/h_MAM_b33_sgolay900.mat']);
+    case 4; InRange = find(mm ==  6 | mm ==  7 | mm ==  8); Map = load(['../02Maps/out/h_JJA_b33_sgolay900.mat']);
   end
   
   for iVar=1:1:3;
@@ -60,8 +60,8 @@ for iQ = 1:1:4
     Data2 = interp2(Era5.Settings.LatScale,Era5.Settings.LonScale,...
                     Data,xi,yi);
                
-    MapO  = smoothn2(MapO,[5,5].*3,'gauss',[5,5]./2.355);
-    Data2 = smoothn2(Data2,[5,5].*3,'gauss',[5,5]./2.355);
+    MapO  = smoothn2(MapO,[7,7].*3,'gauss',[7,7]./2.355);
+    Data2 = smoothn2(Data2,[7,7].*3,'gauss',[7,7]./2.355);
     
     %store values and difference
     NewMaps(iVar,:,:,1,iQ) = Data2;
