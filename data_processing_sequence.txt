@@ -1,4 +1,4 @@
-Run programmes in this order to produce the plots from the paper. Most scripts will require changes of variable path, as they are configured for my system. Some directories are not used for any of the above - these are tests made to either better understand the data or to contextualise the data.
+Run programmes in this order to produce the plots from the paper. Most scripts will require changes of variable path, as they are configured for my system. Some directories are not used for any of the output figures - these are tests made to either better understand the data or to contextualise the data.
 
 *************NOTE THAT SEVERAL ROUTINES CALL FUNCTIONS FROM MY MAIN LIBRARY, WHICH CAN BE ACCESSED VIA https://github.com/corwin365/MatlabFunctions. THIS INCLUDES THE MAIN IAGOS DATA-PREPROCESSING FUNCTION, AS I USE IT FOR OTHER PROJECTS, AND THIS FUNCTION IS ABSOLUTELY NECESSARY TO REPRODUCE OUR RESULTS***********
 
@@ -12,7 +12,7 @@ Run programmes in this order to produce the plots from the paper. Most scripts w
 01ProcessGWs/combine_data_into_annual_files.m
 02Maps/generate_map_data.m
 
-Note that several postprocessing/QC steps that should logically be in iagos_cruises_st_fixedDX.m are in add_tropopause.m due to the way the code evolved, and thus these must *both* be run for the dataset to be usable. 
+Note that several postprocessing/QC steps that should logically be in iagos_cruises_st_fixedDX.m are in add_tropopause.m due to the way the code evolved, and thus these must *both* be run for the dataset to be usable. This is not ideal, but is not a good use of time to fix.
 
 Several variables need to be set to call the above functions. The script_wrapper.m functions in 01ProcessGWs/ and 02Maps/ generate SLURM scripts configured for the Bath Balena HPC system which set these variables - examining the output of these scripts may be helpful to understand the variables that must be set for the others.
 
@@ -43,7 +43,6 @@ The below figures can be generated independently in any order provided the above
 %%Figure 4 - clustering example
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 02Maps/plot_clusterbounds.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,16 +52,29 @@ The below figures can be generated independently in any order provided the above
 02Maps/plot_map_data.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%Figures 6 - ERA5 comparison
+%%Figure 6 - ERA5 comparison
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 12ERA5ComparisonMaps/generate_data.m
 12ERA5ComparisonMaps/plot_era5.m
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%Figure 8 - small multiple plots
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+11SmallMultiples/map_of_maps.m
+11SmallMultiples/small_multiples_v2.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%Figures 8 - zonal mean maps
+%%Figure 9 - zonal mean maps
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 09ZonalMeans/zm_generate_lonweight.m
 09ZonalMeans/plot_zms_seasonal_final.m
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%Figures 10 - correlations and regression
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+13SmallMultiplesLongTerm/long_term_analysis_monthly.m
+13SmallMultiplesLongTerm/index_regression_maps.m
